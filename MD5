@@ -1,0 +1,13 @@
+bf4962c323c6ae99ee75c234e1baa510 *DESCRIPTION
+0ef96c91e3899f0ce41eafa49a863931 *NAMESPACE
+75e7abe635e6cda9d00dd8814c44694a *NEWS
+230c03d6617f0deb40cced1018f0dca0 *R/Omega.R
+ba36f52709c9d5d8d29666afa77d1430 *R/SDF2spectrum.3D.array.R
+1c4c7919cbea4ccab0988ea54c75d0ae *R/discrete.entropy.R
+2c09689bce1f84dbaeafd0c8b6cb0939 *R/spectral.entropy.R
+d0c3ed9dfe9ad3461b111f927479c2ee *R/spectrum.3D.array.R
+b64327d3d1be94ff763f03ef4988a912 *man/ForeCA-package.Rd
+43741a8c3240941c676d1f3acfb3dea7 *man/Omega.Rd
+ce4a8f5cda89626b328ea0951f6b2ec8 *man/discrete.entropy.Rd
+34597733ba9d1cffa5f9e3fdca942e99 *man/spectral.entropy.Rd
+100a2aeb2673c3e0165f35d5763525b0 *man/spectrum.3D.array.Rd

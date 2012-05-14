@@ -1,0 +1,18 @@
+Changes to ForeCA:
+==================
+
+Update history on the ForeCA package.
+
+Initial release 0.0.1:
+- base functions to compute (spectral) entropies and Omega for (multivariate) time series
+- first draft of documentation
+- simple examples in the help files
+
+First version 0.0.1 written by Georg M. Goerg on May 14, 2012.
+
+Bugs & feature requests:
+========================
+
+* include other spectrum estimators
+* include a continuous version estimator of entropy; e.g. used to compute entropy for a fitted AR spectrum
+* compressed sensing type of sparsity in the spectrum; currently only by a heuristic thresholding rule
