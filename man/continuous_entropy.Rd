@@ -2,8 +2,7 @@
 \alias{continuous_entropy}
 \title{Shannon entropy for a continuous pdf}
 \usage{
-continuous_entropy(pdf = function(x) return(dunif(x, 0, 1)), a = NULL, b = NULL, 
-    base = 2)
+continuous_entropy(pdf = function(x) return(dunif(x, 0, 1)), a = NULL, b = NULL, base = 2)
 }
 \arguments{
   \item{pdf}{R function (\code{function(x) ...}) for the
@@ -43,8 +42,7 @@ continuous_entropy(my_density)
 }
 continuous_entropy(my_density, -1, 1)  # = log(b - a)
 
-# entropy of the U(a,b) = log(b-a). thus not necessarily positive anymore,
-# e.g.
+# entropy of the U(a,b) = log(b-a). thus not necessarily positive anymore, e.g.
 continuous_entropy(function(x) dunif(x, 0, 0.5), 0, 0.5)  # log2(0.5)
 }
 \seealso{

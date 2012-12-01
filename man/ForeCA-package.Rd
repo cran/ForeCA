@@ -13,14 +13,14 @@
   \eqn{y_t}: higher entropy means less forecastable, lower
   entropy is more forecastable.
 
-  The main function is \code{\link{ForeCA.EM}}, which runs
-  ForeCA on a multivariate time series to find the most
-  forecastable signals.
+  The main function \code{\link{foreca}} runs ForeCA on a
+  multivariate time series to find the most forecastable
+  signals.
 
   Note that even though this version of the package has
   most functionality, some function naming conventions
   might change in future version.  In particular,
-  underscores and ``.'' in the ``ForeCA.EM.x_y_z'' function
+  underscores and ``.'' in the ``foreca.EM.x_y_z'' function
   names might change in future versions.  Please consult
   the manual of each new version.
 }
@@ -32,9 +32,9 @@ plot(log(lynx, 10))
 Omega(log(lynx, 10), spectrum_method = "direct")
 
 \dontrun{
-foreca <- ForeCA.EM(XX, n.comp = 2)
-plot(foreca)
-summary(foreca)
+ff <- foreca(XX, n.comp = 2)
+plot(ff)
+summary(ff)
 }
 }
 \author{
@@ -42,7 +42,7 @@ summary(foreca)
 }
 \references{
   Goerg, G.M. (2012). \dQuote{Forecastable Component
-  Analysis}. In preparation for submission
+  Analysis}. Submitted for publication
   (\url{arxiv.org/abs/1205.4591}).
 }
 \keyword{package}

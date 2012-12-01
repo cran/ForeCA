@@ -1,8 +1,8 @@
-\name{prewhiten}
-\alias{prewhiten}
-\title{Prewhitens multivariate data}
+\name{whiten}
+\alias{whiten}
+\title{whitens multivariate data}
 \usage{
-prewhiten(data)
+whiten(data)
 }
 \arguments{
   \item{data}{\eqn{T \times n} array}
@@ -38,7 +38,7 @@ prewhiten(data)
 set.seed(1)
 XX <- matrix(rnorm(100), ncol = 2)
 cov(XX)
-UU <- prewhiten(XX)$U
+UU <- whiten(XX)$U
 cov(UU)
 }
 \keyword{manip}

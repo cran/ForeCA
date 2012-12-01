@@ -1,15 +1,14 @@
-\name{ForeCA.EM}
-\alias{ForeCA.EM}
-\alias{ForeCA.EM.one_weightvector}
+\name{foreca.EM}
+\alias{foreca.EM}
+\alias{foreca.EM.opt_comp}
 \title{EM-like Algorithm to Estimate Optimal Transformations via ForeCA}
 \usage{
-ForeCA.EM(series, spectrum_method = "multitaper", n.comp = 2, tol = 1e-04, max_iter = 200, 
-    kernel = NULL, nstart = 10, plot = TRUE, threshold = 0, smoothing = FALSE, 
-    ...)
+foreca.EM(series, spectrum_method = "multitaper", n.comp = 2, tol = 1e-04, max_iter = 200, 
+    kernel = NULL, nstart = 10, plot = TRUE, threshold = 0, smoothing = FALSE, ...)
 
-ForeCA.EM.one_weightvector(series, f_U = NULL, spectrum_method = "multitaper", 
-    entropy_method = "MLE", tol = 1e-04, max_iter = 100, kernel = NULL, nstart = 5, 
-    threshold = 0, smoothing = FALSE, ...)
+foreca.EM.opt_comp(series, f_U = NULL, spectrum_method = "multitaper", entropy_method = "MLE", 
+    tol = 1e-04, max_iter = 100, kernel = NULL, nstart = 5, threshold = 0, smoothing = FALSE, 
+    ...)
 }
 \arguments{
   \item{n.comp}{number of components to be extracted}
@@ -60,7 +59,7 @@ ForeCA.EM.one_weightvector(series, f_U = NULL, spectrum_method = "multitaper",
   most to least forecastable.
 }
 \description{
-  \code{ForeCA.EM} estimates the optimal transformations to
+  \code{foreca.EM} estimates the optimal transformations to
   obtain forecastable signals from multivariate time series
   \code{series}
 }
@@ -68,14 +67,14 @@ ForeCA.EM.one_weightvector(series, f_U = NULL, spectrum_method = "multitaper",
 \dontrun{
 XX <- diff(log(EuStockMarkets[-c(1:50), ])) * 100
 plot(ts(XX))
-foreca <- ForeCA.EM(XX[, 1:3], n.comp = 3)
+foreca <- foreca.EM(XX[, 1:3], n.comp = 3)
 
 summary(foreca)
 plot(foreca)
 }
 \dontrun{
 XX <- diff(log(EuStockMarkets)) * 100
-one_weight <- ForeCA.EM.one_weightvector(XX, smoothing = FALSE)
+one_weight <- foreca.EM.opt_comp(XX, smoothing = FALSE)
 
 plot(one_weight)
 }

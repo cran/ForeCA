@@ -1,14 +1,14 @@
 #' @title ForeCA EM auxiliary functions
-#' @name ForeCA.EM-aux
-#' @aliases ForeCA.EM.E_step ForeCA.EM.M_step ForeCA.EM.h
+#' @name foreca.EM-aux
+#' @aliases foreca.EM.E_step foreca.EM.M_step foreca.EM.h
 #' @description 
 #' The EM-like algorithm needs three auxiliary functions:
 #' 
 NULL
 
-#' @rdname ForeCA.EM-aux
+#' @rdname foreca.EM-aux
 #' @description
-#' \code{ForeCA.EM.E_step} computes the spectral density given a weight-vector
+#' \code{foreca.EM.E_step} computes the spectral density given a weight-vector
 #' \eqn{\mathbf{w}_i}.
 #' @keywords manip
 #' @param f_U an object of class \code{"mvspectrum"} with 
@@ -17,7 +17,7 @@ NULL
 #' Must have unit norm in \eqn{L_2}. 
 #' @export
 #' @return
-#' \code{ForeCA.EM.E_step} returns a vector containing the normalized spectral 
+#' \code{foreca.EM.E_step} returns a vector containing the normalized spectral 
 #' density (normalized such that its \code{mean} equals \eqn{0.5} - since 
 #' \code{f_U} only contains positive frequencies and is symmetric).
 #' @examples
@@ -28,10 +28,10 @@ NULL
 #' ww0 = matrix(rnorm(ncol(XX)))
 #' ww0 = ww0 / norm(ww0, 'F')
 #' 
-#' f_ww0 = ForeCA.EM.E_step(ff, ww0)
+#' f_ww0 = foreca.EM.E_step(ff, ww0)
 #' 
 
-ForeCA.EM.E_step <- function(f_U, weights = NULL) {
+foreca.EM.E_step <- function(f_U, weights = NULL) {
   weights <- weights/base::norm(as.matrix(weights), "F")
   ff <- Re(apply(f_U, 1, quadratic_form, vec = weights))
   ff[ff < 0] <- 1/length(ff)^2
@@ -40,9 +40,9 @@ ForeCA.EM.E_step <- function(f_U, weights = NULL) {
 } 
 
 
-#' @rdname ForeCA.EM-aux
+#' @rdname foreca.EM-aux
 #' @description
-#' \code{ForeCA.EM.M_step} computes the minimizing eigenvector 
+#' \code{foreca.EM.M_step} computes the minimizing eigenvector 
 #' (\eqn{\rightarrow \widehat{\mathbf{w}}_{i+1}}) of the weighted
 #' covariance matrix, where the weights equal the negative logarithm of the 
 #' spectral density at the current \eqn{\widehat{\mathbf{w}}_i}.
@@ -55,7 +55,7 @@ ForeCA.EM.E_step <- function(f_U, weights = NULL) {
 #' @param Sigma_X optional; covariance matrix of \eqn{\mathbf{X}}
 #' @export
 #' @return
-#' \code{ForeCA.EM.M_step} returns a list with three elements:
+#' \code{foreca.EM.M_step} returns a list with three elements:
 #' \describe{
 #'    \item{\code{matrix}:}{is the weighted covariance matrix 
 #'          (positive semi-definite), where the weights are the negative 
@@ -66,14 +66,14 @@ ForeCA.EM.E_step <- function(f_U, weights = NULL) {
 #' }
 #' @examples
 #' 
-#' onestep = ForeCA.EM.M_step(ff, f_ww0)
+#' onestep = foreca.EM.M_step(ff, f_ww0)
 #' image(onestep$matrix)
 #' \dontrun{
 #' # if you have 'LICORS' package installed, better use this:
 #' image2(onestep$matrix)
 #' }
 #' ww1 = onestep$vector
-#' f_ww1 = ForeCA.EM.E_step(ff, ww1)
+#' f_ww1 = foreca.EM.E_step(ff, ww1)
 #' 
 #' par(mar = c(4, 4, 1, 1), mfcol= c(1,2))
 #' matplot(seq(0, pi, length = length(f_ww0)), cbind(f_ww0, f_ww1), type = "l", lwd =2, xlab = "frequencies")
@@ -81,7 +81,7 @@ ForeCA.EM.E_step <- function(f_U, weights = NULL) {
 #' 
 #' 
 
-ForeCA.EM.M_step <- function(f_U, f_current = NULL, base = NULL, 
+foreca.EM.M_step <- function(f_U, f_current = NULL, base = NULL, 
                              minimize = TRUE, 
                              Sigma_X = NULL) {
   
@@ -127,19 +127,19 @@ ForeCA.EM.M_step <- function(f_U, f_current = NULL, base = NULL,
   return(out)
 } 
 
-#' @rdname ForeCA.EM-aux
+#' @rdname foreca.EM-aux
 #' @description
-#' \code{ForeCA.EM.h} evaluates the entropy of the spectral density as a function
+#' \code{foreca.EM.h} evaluates the entropy of the spectral density as a function
 #' of \eqn{\mathbf{w}}. This is the objective funcion that should be minimized.
 #' 
 #' @keywords manip
 #' @param weights_new weights \eqn{\widehat{\mathbf{w}}_{i+1}} of the new iteration (i+1)
 #' @param f_current spectral density of the current estimate 
-#' \eqn{\widehat{\mathbf{w}}_i} (required for \code{ForeCA.EM.M_step}; 
-#' optional for \code{ForeCA.EM.h}).
+#' \eqn{\widehat{\mathbf{w}}_i} (required for \code{foreca.EM.M_step}; 
+#' optional for \code{foreca.EM.h}).
 #' @param weights_current weights \eqn{\widehat{\mathbf{w}}_{i}} of the current iteration (i)
 #' @return 
-#' \code{ForeCA.EM.h} returns (see References for details):
+#' \code{foreca.EM.h} returns (see References for details):
 #' \itemize{
 #'    \item the negative entropy (non-negative real) if 
 #'          \code{weights_new = weights_current}
@@ -149,22 +149,22 @@ ForeCA.EM.M_step <- function(f_U, f_current = NULL, base = NULL,
 #' @export
 #' @examples
 #' 
-#' ForeCA.EM.h(ww0, ff)       # iteration 0
-#' ForeCA.EM.h(ww1, ff, ww0)  # min eigenvalue inequality
-#' ForeCA.EM.h(ww1, ff)       # KL divergence inequality
+#' foreca.EM.h(ww0, ff)       # iteration 0
+#' foreca.EM.h(ww1, ff, ww0)  # min eigenvalue inequality
+#' foreca.EM.h(ww1, ff)       # KL divergence inequality
 #' onestep$value
 #' 
-#' Omega(spectrum_estimate = f_ww0) / 100 + ForeCA.EM.h(ww0, ff)
-#' Omega(spectrum_estimate = f_ww1) / 100 + ForeCA.EM.h(ww1, ff)
+#' Omega(spectrum_estimate = f_ww0) / 100 + foreca.EM.h(ww0, ff)
+#' Omega(spectrum_estimate = f_ww1) / 100 + foreca.EM.h(ww1, ff)
 #' 
 
-ForeCA.EM.h <- function(weights_new, f_U, 
+foreca.EM.h <- function(weights_new, f_U, 
                         weights_current = weights_new, f_current = NULL, 
                         base = NULL) {
   # short as quadratic_form(apply(f_U*log(weights_current), 2:3, sum),
   # weights_new)
   if (is.null(f_current)) {
-    f_current <- ForeCA.EM.E_step(f_U, weights_current)  #Re(apply(f_U, 1, quadratic_form, weights_current))
+    f_current <- foreca.EM.E_step(f_U, weights_current)  #Re(apply(f_U, 1, quadratic_form, weights_current))
   }
   if (round(mean(f_current), 6) != 0.5){
     stop("The spectral density in 'f_current' is not correctly normalized. Its
@@ -191,11 +191,11 @@ ForeCA.EM.h <- function(weights_new, f_U,
 } 
 
 
-#' @rdname ForeCA.EM-aux
+#' @rdname foreca.EM-aux
 #' @description
-#' \code{ForeCA.EM.init_weightvector} returns an initialization vector 
+#' \code{foreca.EM.init_weightvector} returns an initialization vector 
 #' \eqn{\mathbf{w}_0 \in R^k}, with \eqn{L_2} norm \eqn{1}, for
-#' the EM-like algorithm in \code{\link{ForeCA.EM.one_weightvector}}.  
+#' the EM-like algorithm in \code{\link{foreca.EM.opt_comp}}.  
 #' They are all based on quickly computable heuristics
 #' than approximate a forecastable signal. See \code{method} argument and Details
 #' below. 
@@ -236,14 +236,14 @@ ForeCA.EM.h <- function(weights_new, f_U,
 #'                  determine a good starting vector. The slowest feature
 #'                  corresponds to maximizing the lag \eqn{1} correlation
 #' @return 
-#' \code{ForeCA.EM.init_weightvector} returns a good starting vector 
-#' \eqn{\mathbf{w}_0} for \code{\link{ForeCA.EM.one_weightvector}}.
+#' \code{foreca.EM.init_weightvector} returns a good starting vector 
+#' \eqn{\mathbf{w}_0} for \code{\link{foreca.EM.opt_comp}}.
 #' @references
 #' Laurenz Wiskott and Terrence J. Sejnowski (2002). 
 #' \dQuote{Slow Feature Analysis: Unsupervised Learning of Invariances}, 
 #' Neural Computation 14:4, 715-770.
 
-ForeCA.EM.init_weightvector <- function(UU, f_U, method="SFA", seed=NULL, 
+foreca.EM.init_weightvector <- function(UU, f_U, method="SFA", seed=NULL, 
                                         lag = 1) {
   kk <- ncol(UU)
   
@@ -277,8 +277,8 @@ ForeCA.EM.init_weightvector <- function(UU, f_U, method="SFA", seed=NULL,
     } else if (method == "SFA_fast"){
       ww0 <- ww_fast
     } else if (method == "SFA"){
-      omega_slow <- Omega(spectrum_estimate = ForeCA.EM.E_step(f_U, ww_slow))
-      omega_fast <- Omega(spectrum_estimate = ForeCA.EM.E_step(f_U, ww_fast))
+      omega_slow <- Omega(spectrum_estimate = foreca.EM.E_step(f_U, ww_slow))
+      omega_fast <- Omega(spectrum_estimate = foreca.EM.E_step(f_U, ww_fast))
       
       if (omega_fast > omega_slow){
         ww0 <- ww_fast

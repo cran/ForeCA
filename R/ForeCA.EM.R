@@ -1,12 +1,12 @@
 #' @title EM-like Algorithm to Estimate Optimal Transformations via ForeCA
-#' @name ForeCA.EM
-#' @aliases ForeCA.EM.one_weightvector
+#' @name foreca.EM
+#' @aliases foreca.EM.opt_comp
 #' @description 
 #' 
-#' \code{ForeCA.EM} estimates the optimal transformations to obtain forecastable
+#' \code{foreca.EM} estimates the optimal transformations to obtain forecastable
 #' signals from multivariate time series \code{series} 
 #' 
-#' @inheritParams ForeCA.EM.one_weightvector
+#' @inheritParams foreca.EM.opt_comp
 #' @param n.comp number of components to be extracted
 #' @param plot indicator; if \code{TRUE} a plot of the current optimal 
 #' solution \eqn{\mathbf{w}_i^*} will be shown and the plot is updated for each 
@@ -19,13 +19,13 @@
 #' \dontrun{
 #' XX = diff(log(EuStockMarkets[-c(1:50),])) * 100
 #' plot(ts(XX))
-#' foreca = ForeCA.EM(XX[,1:3], n.comp = 3)
+#' foreca = foreca.EM(XX[,1:3], n.comp = 3)
 #' 
 #' summary(foreca)
 #' plot(foreca)
 #' }
 
-ForeCA.EM <- function(series, 
+foreca.EM <- function(series, 
                       spectrum_method = "multitaper", 
                       n.comp = 2, 
                       tol = 1e-4, 
@@ -42,7 +42,7 @@ ForeCA.EM <- function(series,
   
   TT <- nrow(series)
   
-  PW <- prewhiten(series)
+  PW <- whiten(series)
   UU <- PW$U
     
   kk <- ncol(UU)
@@ -78,7 +78,7 @@ ForeCA.EM <- function(series,
                                     threshold = threshold)
       
     } else {
-      foreca_ortho <- ForeCA.EM.one_weightvector(UU_ortho, 
+      foreca_ortho <- foreca.EM.opt_comp(UU_ortho, 
                                                  f_U = ff_UU_ortho,
                                                  spectrum_method = spectrum_method, 
                                                  kernel = kernel, 
@@ -160,12 +160,12 @@ ForeCA.EM <- function(series,
   out$threshold <- threshold
   out$sdev <- out$Omega
   out$lambdas <- out$Omega
-  class(out) <- c("ForeCA", "princomp")
+  class(out) <- c("foreca", "princomp")
   invisible(out)
 }
 
 
-#' @rdname ForeCA.EM
+#' @rdname foreca.EM
 #' @keywords manip
 #' @param series an \eqn{T \times n} array containg a multivariate time series. 
 #' Can be a \code{matrix}, \code{data.frame}, or a multivariate \code{ts} object
@@ -189,12 +189,12 @@ ForeCA.EM <- function(series,
 #' @examples
 #' \dontrun{
 #' XX = diff(log(EuStockMarkets)) * 100
-#' one_weight = ForeCA.EM.one_weightvector(XX, smoothing = FALSE)
+#' one_weight = foreca.EM.opt_comp(XX, smoothing = FALSE)
 #' 
 #' plot(one_weight)
 #' }
 #' 
-ForeCA.EM.one_weightvector <- function(series,
+foreca.EM.opt_comp <- function(series,
                                        f_U = NULL,
                                        spectrum_method = "multitaper", 
                                        entropy_method = "MLE",
@@ -210,7 +210,7 @@ ForeCA.EM.one_weightvector <- function(series,
   }
     
   nseries <- ncol(series)
-  PW <- prewhiten(series)
+  PW <- whiten(series)
   UU <- PW$U
   #print(UU[1:3, ])
   ff_UU <- f_U
@@ -237,20 +237,20 @@ ForeCA.EM.one_weightvector <- function(series,
       WW[1, ] <- PW$Sigma0.5[, 1]
       WW[1, ] <- WW[1, ]/base::norm(WW[1, ], "2")
     } else if (TRY == 2) {
-      WW[1, ] <- ForeCA.EM.init_weightvector(UU, ff_UU, method = "SFA_slow")
+      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "SFA_slow")
     } else if (TRY == 3) {
-      WW[1, ] <- ForeCA.EM.init_weightvector(UU, ff_UU, method = "SFA_fast")
+      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "SFA_fast")
     } else if (TRY == 4){
-      WW[1, ] <- ForeCA.EM.init_weightvector(UU, ff_UU, method = "SFA_slow", 
+      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "SFA_slow", 
                                              lag = frequency(series))
     } else if (TRY == 5) {
-      WW[1, ] <- ForeCA.EM.init_weightvector(UU, ff_UU, method = "max")
+      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "max")
     } else if (TRY == 6) {
-      WW[1, ] <- ForeCA.EM.init_weightvector(UU, ff_UU, method = "unif")
+      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "unif")
     } else if (TRY == 7) {
-      WW[1, ] <- ForeCA.EM.init_weightvector(UU, ff_UU, method = "norm")
+      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "norm")
     } else {
-      WW[1, ] <- ForeCA.EM.init_weightvector(UU, ff_UU, method = "cauchy")
+      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "cauchy")
     }
   
     WW[1, ] <- WW[1, ]/sign(WW[1, which.max(abs(WW[1, ]))])
@@ -263,16 +263,16 @@ ForeCA.EM.one_weightvector <- function(series,
     #print((UU %*% WW[1, ])[1:3])
     
     for (ii in 1:max_iter) {
-      f_current <- ForeCA.EM.E_step(f_U = ff_UU, weights = WW[ii, ])
+      f_current <- foreca.EM.E_step(f_U = ff_UU, weights = WW[ii, ])
       #f_current_direct <- mvspectrum(UU %*% WW[ii, ], method = spectrum_method,
       #                               normalize = TRUE, smoothing = smoothing)
       #matplot(cbind(f_current, f_current_direct), log = "y")
       #f_current <- f_current_direct
       #Sys.sleep(0.1)
-      HH[ii] <- ForeCA.EM.h(weights_new = WW[ii, ], f_U = ff_UU, 
+      HH[ii] <- foreca.EM.h(weights_new = WW[ii, ], f_U = ff_UU, 
                             f_current = f_current, base = NULL)
       
-      WW <- rbind(WW, ForeCA.EM.M_step(ff_UU, f_current, 
+      WW <- rbind(WW, foreca.EM.M_step(ff_UU, f_current, 
                                        minimize = TRUE)$vector)
       
       HH_tries[TRY] <- HH[length(HH)]
@@ -347,9 +347,9 @@ ForeCA.EM.one_weightvector <- function(series,
   out$spectrum_method <- spectrum_method
   out$entropy_method <- entropy_method
   out$smoothing <- smoothing
-  out$best.f <- ForeCA.EM.E_step(f_U = ff_UU, weights = out$best.weights)
+  out$best.f <- foreca.EM.E_step(f_U = ff_UU, weights = out$best.weights)
   
-  class(out) <- "ForeCA.EM.one_weightvector"
+  class(out) <- "foreca.EM.opt_comp"
   invisible(out)
 } 
 

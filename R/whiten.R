@@ -1,4 +1,4 @@
-#'@title Prewhitens multivariate data
+#'@title whitens multivariate data
 #'
 #'@description
 #'This function transforms a multivariate signal \eqn{\mathbf{X}} with mean 
@@ -32,10 +32,10 @@
 #'set.seed(1)
 #'XX = matrix(rnorm(100), ncol = 2)
 #'cov(XX)
-#'UU = prewhiten(XX)$U
+#'UU = whiten(XX)$U
 #'cov(UU)
 
-prewhiten <- function(data) {
+whiten <- function(data) {
   # Compute an uncorrelated, unit-variance version of X, using the SVD form
   # of cov(XX) = Sigma_X = V' Lambda V and thus get U = V' Lambda^(-1/2) X
   

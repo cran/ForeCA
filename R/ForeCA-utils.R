@@ -1,26 +1,27 @@
-#' @title ForeCA plots, summary, print, etc methods 
-#' @name ForeCA-utils
+#' @title Plots, summary, print, etc methods for class 'foreca'
+#' @name foreca-utils
+#' @alias plot.foreca summary.foreca biplot.foreca
 #' @param ... additional arguments passed to 
 #' \code{\link[stats]{biplot.princomp}}, \code{\link[stats]{biplot.default}},
 #' \code{\link[graphics]{plot}}, or \code{\link[base]{summary}}.
 #' @examples
-#' # see examples in 'ForeCA.EM'
+#' # see examples in 'foreca.EM'
 #'
 NULL
 
-#' @rdname ForeCA-utils
-#' @method plot ForeCA
+#' @rdname foreca-utils
+#' @method plot foreca
 #' @description
-#' \code{plot.ForeCA} plots the output of a \code{"ForeCA"} object. It is a 
+#' \code{plot.foreca} plots the output of a \code{"foreca"} object. It is a 
 #' visual summary of the analysis with biplots, screeplots, and white noise 
 #' tests.
 #' @keywords manip
-#' @param x an object of class \code{"ForeCA"} or 
-#' \code{"ForeCA.EM.one_weightvector"}
+#' @param x an object of class \code{"foreca"} or 
+#' \code{"foreca.EM.opt_comp"}
 #' @export
 #' 
 
-plot.ForeCA <- function(x, lag = 10, alpha = 0.05, ...) {
+plot.foreca <- function(x, lag = 10, alpha = 0.05, ...) {
   object <- x
   n.comp <- ncol(object$scores)
 
@@ -56,7 +57,6 @@ plot.ForeCA <- function(x, lag = 10, alpha = 0.05, ...) {
     biplot(object, 3:4)
   } else {
     plot.new()
-    #plot(1, type = "n", axes = F, xlab = "", ylab = "")
   }
   barplot(SO$p.value, ylim = c(0, max(alpha * 1.1, SO$p.value)), ylab = "", 
           main = "")
@@ -72,12 +72,12 @@ plot.ForeCA <- function(x, lag = 10, alpha = 0.05, ...) {
   abline(h = alpha, lwd = 2, lty = 2, col = 4)
 }
 
-#' @rdname ForeCA-utils
-#' @method plot ForeCA.EM.one_weightvector
+#' @rdname foreca-utils
+#' @method plot foreca.EM.opt_comp
 #' @description
-#' \code{plot.ForeCA.EM.one_weightvector} gives a visual summary of the EM-like
+#' \code{plot.foreca.EM.opt_comp} gives a visual summary of the EM-like
 #' algorithm to obtain a weight-vector \eqn{\mathbf{w}_i^*}.  It gives trace
-#' plots of the objective function (\code{\link{ForeCA.EM.h}}) and of the weight
+#' plots of the objective function (\code{\link{foreca.EM.h}}) and of the weight
 #' vector, and it shows the transformed signal \eqn{y_t^*} 
 #' along with its spectral density estimate \eqn{\widehat{f}_y(\omega_j)}.
 #' @keywords manip
@@ -85,7 +85,7 @@ plot.ForeCA <- function(x, lag = 10, alpha = 0.05, ...) {
 #' @export
 #' 
 
-plot.ForeCA.EM.one_weightvector <- function(x, main = "", ...) {
+plot.foreca.EM.opt_comp <- function(x, main = "", ...) {
   
   object <- x
   max_iter <- object$iterations
@@ -148,20 +148,20 @@ plot.ForeCA.EM.one_weightvector <- function(x, main = "", ...) {
 
 }
 
-#' @rdname ForeCA-utils
-#' @method summary ForeCA
+#' @rdname foreca-utils
+#' @method summary foreca
 #' @description
-#' \code{summary.ForeCA} is a \code{\link[base]{summary}} method for a 
-#' \code{\link{ForeCA}} output.
+#' \code{summary.foreca} is a \code{\link[base]{summary}} method for an object
+#' of class \code{"foreca"}.
 #' 
 #' @keywords manip
-#' @param object an object of class \code{"ForeCA"}
+#' @param object an object of class \code{"foreca"}
 #' @param alpha significance level for testing white noise in \code{\link[stats]{Box.test}}
 #' @param lag how many lags to test in \code{\link[stats]{Box.test}}
 #' @export
 #' 
 
-summary.ForeCA <- function(object, lag = 10, alpha = 0.05, ...) {
+summary.foreca <- function(object, lag = 10, alpha = 0.05, ...) {
   aux_pvalues <- function(series) {
     Box.test(series, lag = lag, type = "Ljung-Box")$p.value
   }
@@ -182,16 +182,16 @@ summary.ForeCA <- function(object, lag = 10, alpha = 0.05, ...) {
 }
 
 
-#' @rdname ForeCA-utils
-#' @method biplot ForeCA
+#' @rdname foreca-utils
+#' @method biplot foreca
 #' @description
-#' \code{biplot.ForeCA} plots a biplot from the output of \code{\link{ForeCA}} 
+#' \code{biplot.foreca} plots a biplot for an object of class \code{"foreca"} 
 #' (a wrapper around \code{\link[stats]{biplot.princomp}}).
 #' @keywords hplot
 #' @export
 #'
 
-biplot.ForeCA <- function(x, ...) {
+biplot.foreca <- function(x, ...) {
   object_princomp <- x
   class(object_princomp) <- "princomp"
   biplot(object_princomp, ...)

@@ -1,8 +1,15 @@
 Update History of ForeCA:
 =========================
 
-Version 0.0.6
---------------
+Version 0.0.9
+-------------
+
+- changed capitalized ForeCA names to all lowercase. E.g. ForeCA.EM to foreca.EM; 
+- changed foreca.one_weightvector to foreca.EM.opt_comp()
+
+
+Version 0.0.8.1
+---------------
 
 - added many additional functions in the package, including the main algorithm `ForeCA.EM`
 - changed to Roxygen2 documentation

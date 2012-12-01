@@ -7,8 +7,8 @@
 \usage{
 mvspec2mvspectrum(mvspec.output)
 
-mvspectrum(series, method = "multitaper", normalize = FALSE, smoothing = FALSE, 
-    Sigma_X = NULL, ...)
+mvspectrum(series, method = "multitaper", normalize = FALSE, smoothing = FALSE, Sigma_X = NULL, 
+    ...)
 
 normalize_mvspectrum(mvspectrum.output, Sigma_X = NULL)
 

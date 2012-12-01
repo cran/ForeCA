@@ -2,8 +2,8 @@
 \alias{spectral_entropy}
 \title{Estimates spectral entropy of a time series}
 \usage{
-spectral_entropy(series, spectrum_method = "wosa", spectrum_estimate = NULL, 
-    base = NULL, entropy_method = "MLE", threshold = 0, smoothing = FALSE, ...)
+spectral_entropy(series, spectrum_method = "wosa", spectrum_estimate = NULL, base = NULL, entropy_method = "MLE", 
+    threshold = 0, smoothing = FALSE, ...)
 }
 \arguments{
   \item{series}{univariate time series (multivariate also

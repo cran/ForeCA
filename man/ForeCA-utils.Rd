@@ -1,18 +1,18 @@
-\name{ForeCA-utils}
-\alias{biplot.ForeCA}
-\alias{ForeCA-utils}
-\alias{plot.ForeCA}
-\alias{plot.ForeCA.EM.one_weightvector}
-\alias{summary.ForeCA}
-\title{ForeCA plots, summary, print, etc methods}
+\name{foreca-utils}
+\alias{biplot.foreca}
+\alias{foreca-utils}
+\alias{plot.foreca}
+\alias{plot.foreca.EM.opt_comp}
+\alias{summary.foreca}
+\title{Plots, summary, print, etc methods for class 'foreca'}
 \usage{
-\method{plot}{ForeCA}(x, lag = 10, alpha = 0.05, ...)
+\method{plot}{foreca}(x, lag = 10, alpha = 0.05, ...)
 
-\method{plot}{ForeCA.EM.one_weightvector}(x, main = "", ...)
+\method{plot}{foreca.EM.opt_comp}(x, main = "", ...)
 
-\method{summary}{ForeCA}(object, lag = 10, alpha = 0.05, ...)
+\method{summary}{foreca}(object, lag = 10, alpha = 0.05, ...)
 
-\method{biplot}{ForeCA}(x, ...)
+\method{biplot}{foreca}(x, ...)
 }
 \arguments{
   \item{...}{additional arguments passed to
@@ -21,13 +21,13 @@
   \code{\link[graphics]{plot}}, or
   \code{\link[base]{summary}}.}
 
-  \item{x}{an object of class \code{"ForeCA"} or
-  \code{"ForeCA.EM.one_weightvector"}}
+  \item{x}{an object of class \code{"foreca"} or
+  \code{"foreca.EM.opt_comp"}}
 
   \item{main}{an overall title for the plot: see
   \code{\link[graphics]{title}}.}
 
-  \item{object}{an object of class \code{"ForeCA"}}
+  \item{object}{an object of class \code{"foreca"}}
 
   \item{alpha}{significance level for testing white noise
   in \code{\link[stats]{Box.test}}}
@@ -36,29 +36,29 @@
   \code{\link[stats]{Box.test}}}
 }
 \description{
-  ForeCA plots, summary, print, etc methods
+  Plots, summary, print, etc methods for class 'foreca'
 
-  \code{plot.ForeCA} plots the output of a \code{"ForeCA"}
+  \code{plot.foreca} plots the output of a \code{"foreca"}
   object. It is a visual summary of the analysis with
   biplots, screeplots, and white noise tests.
 
-  \code{plot.ForeCA.EM.one_weightvector} gives a visual
-  summary of the EM-like algorithm to obtain a
-  weight-vector \eqn{\mathbf{w}_i^*}.  It gives trace plots
-  of the objective function (\code{\link{ForeCA.EM.h}}) and
-  of the weight vector, and it shows the transformed signal
+  \code{plot.foreca.EM.opt_comp} gives a visual summary of
+  the EM-like algorithm to obtain a weight-vector
+  \eqn{\mathbf{w}_i^*}.  It gives trace plots of the
+  objective function (\code{\link{foreca.EM.h}}) and of the
+  weight vector, and it shows the transformed signal
   \eqn{y_t^*} along with its spectral density estimate
   \eqn{\widehat{f}_y(\omega_j)}.
 
-  \code{summary.ForeCA} is a \code{\link[base]{summary}}
-  method for a \code{\link{ForeCA}} output.
+  \code{summary.foreca} is a \code{\link[base]{summary}}
+  method for an object of class \code{"foreca"}.
 
-  \code{biplot.ForeCA} plots a biplot from the output of
-  \code{\link{ForeCA}} (a wrapper around
+  \code{biplot.foreca} plots a biplot for an object of
+  class \code{"foreca"} (a wrapper around
   \code{\link[stats]{biplot.princomp}}).
 }
 \examples{
-# see examples in 'ForeCA.EM'
+# see examples in 'foreca.EM'
 }
 \keyword{hplot}
 \keyword{manip}
