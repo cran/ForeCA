@@ -1,39 +1,48 @@
-\name{ForeCA-package}
-\alias{ForeCA-package}
-\alias{ForeCA}
 \docType{package}
-\title{Forecastable Component Analysis}
+\name{ForeCA-package}
+\alias{ForeCA}
+\alias{ForeCA-package}
+\title{Implementation of Forecastable Component Analysis (ForeCA)}
 \description{
-ForeCA is a blind source separation (BSS) technique that finds an optimal linear
-transformation of time series such that the transformed series is as forecastable as
-possible.
+  ForeCA is a novel dimension reduction (DR) technique for
+  multivariate time series.  ForeCA finds a linar
+  combination \eqn{y_t = \mathbf{w}' \mathbf{X}_t} that is
+  easy to forecast.  The measure of forecastability
+  \eqn{\Omega(x_t)} (\code{\link{Omega}}) is based on the
+  entropy of the spectral density \eqn{f_y(\lambda)} of
+  \eqn{y_t}: higher entropy means less forecastable, lower
+  entropy is more forecastable.
 
-The measure of forecastability \eqn{\Omega(x_t)} is based on the entropy of the spectral density of 
-a time series: higher entropy means less forecastable, lower entropy is more forecastable. With this objective function it is possible to find optimal linear combinations \eqn{y_t = \mathbf{w}' \mathbf{X}_t}, such that \eqn{y_t} is easy to predict.
+  The main function is \code{\link{ForeCA.EM}}, which runs
+  ForeCA on a multivariate time series to find the most
+  forecastable signals.
+
+  Note that even though this version of the package has
+  most functionality, some function naming conventions
+  might change in future version.  In particular,
+  underscores and ``.'' in the ``ForeCA.EM.x_y_z'' function
+  names might change in future versions.  Please consult
+  the manual of each new version.
 }
-\details{
-\tabular{ll}{
-Package: \tab ForeCA\cr
-Type: \tab Package\cr
-Version: \tab 0.0.1\cr
-Date: \tab 2012-05-18\cr
-License: \tab GPL\cr
+\examples{
+XX <- ts(diff(log(EuStockMarkets))[-c(1:1000), ])
+Omega(XX)
+
+plot(log(lynx, 10))
+Omega(log(lynx, 10), spectrum_method = "direct")
+
+\dontrun{
+foreca <- ForeCA.EM(XX, n.comp = 2)
+plot(foreca)
+summary(foreca)
 }
-
-In this current (first release) version \code{\link{Omega}} is the main function. It estimates
-the forecastability for a univariate time series and returns a value between \eqn{0\%} and \eqn{100\%}: white noise has \eqn{0} forecastability, a perfect sinusoid is \eqn{100\%} predictable (however, empirically it reaches \eqn{100\%} only if the estimated spectrum has only one peak at some frequency \eqn{\omega_j} and \eqn{\widehat{f}(\omega_k) = 0} for all \eqn{k\neq j} ).
-
-The BSS implementation of ForeCA will be added in a future version.
 }
 \author{
-Author and maintainer: Georg M. Goerg <gmg@stat.cmu.edu>
+  Author and maintainer: Georg M. Goerg <gmg@stat.cmu.edu>
 }
 \references{
-Goerg, G.M. (2012). \dQuote{ForeCA: Forecastable Component Analysis}. In preparation for submission (available on http://www.arxiv.org soon).
+  Goerg, G.M. (2012). \dQuote{Forecastable Component
+  Analysis}. In preparation for submission
+  (\url{arxiv.org/abs/1205.4591}).
 }
-
-\keyword{ package }
-
-\examples{
-# see examples for the function 'Omega'
-}
+\keyword{package}

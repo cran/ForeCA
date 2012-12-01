@@ -1,18 +1,25 @@
-Changes to ForeCA:
-==================
+Update History of ForeCA:
+=========================
 
-Update history on the ForeCA package.
+Version 0.0.6
+--------------
 
-Initial release 0.0.1:
-- base functions to compute (spectral) entropies and Omega for (multivariate) time series
+- added many additional functions in the package, including the main algorithm `ForeCA.EM`
+- changed to Roxygen2 documentation
+
+
+Initial release version 0.0.1:
+------------------------------
+
+- base functions to estimate (spectral) entropies and Omega for (multivariate) time series
 - first draft of documentation
-- simple examples in the help files
+- simple examples in help files
 
 First version 0.0.1 written by Georg M. Goerg on May 14, 2012.
 
 Bugs & feature requests:
 ========================
-
+* check what is the best to store the 3D array spectrum (frequency last or first?)
 * include other spectrum estimators
 * include a continuous version estimator of entropy; e.g. used to compute entropy for a fitted AR spectrum
 * compressed sensing type of sparsity in the spectrum; currently only by a heuristic thresholding rule
