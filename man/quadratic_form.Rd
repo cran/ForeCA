@@ -10,18 +10,16 @@ quadratic_form(mat, vec)
   \item{vec}{\eqn{n \times 1} vector (real or complex)}
 }
 \value{
-  A real/complex value (\eqn{\mathbf{x}' \mathbf{A}
-  \mathbf{x}}).
+A real/complex value (\eqn{\mathbf{x}' \mathbf{A}
+\mathbf{x}}).
 }
 \description{
-  Computes the quadratic form \eqn{\mathbf{x}' \mathbf{A}
-  \mathbf{x}} for a \eqn{n \times n} matrix
-  \eqn{\mathbf{A}} and an \eqn{n}-dimensional vector
-  \eqn{\mathbf{x}}.
+Computes the quadratic form \eqn{\mathbf{x}' \mathbf{A}
+\mathbf{x}} for an \eqn{n \times n} matrix \eqn{\mathbf{A}}
+and an \eqn{n}-dimensional vector \eqn{\mathbf{x}}, i.e., a
+wrapper for \code{t(x) \%*\% A \%*\% x}.
 
-  Works with real and complex valued matrices/vectors.
-
-  A wrapper for \code{t(x) \%*\% A \%*\% x}.
+Works with real and complex valued matrices/vectors.
 }
 \examples{
 set.seed(1)
@@ -32,3 +30,4 @@ quadratic_form(AA, bb)
 }
 \keyword{math}
 \keyword{univar}
+

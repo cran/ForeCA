@@ -1,38 +1,38 @@
-#' @title Performs Forecastable Component Analysis
+#' @title Runs Forecastable Component Analysis
 #' @name foreca
 #' @description 
-#' \code{foreca} performs Forecastable Component Analysis on a given 
-#' multivariate and returns an object of class \code{foreca}.
+#' \code{foreca} performs Forecastable Component Analysis (ForeCA) on a 
+#' \eqn{K}-dimensional time series with \eqn{T} observations.
 #' 
-#' @param series multivariate time series
-#' @param method what method should be used; currently only the EM-like 
-#' algorithm from the original paper is available (see References): 
-#' \code{method = "EM"} calls \code{\link{foreca.EM}}.
-#' @param ... additional arguments passed to the individual methods (currently
-#' only \code{\link{foreca.EM}}).
+#' @param series multivariate time series of dimension \eqn{T \times K}
+#' @param algorithm.type specifies the algorithm that should be used
+#' to estimate forecastable components. Currently only the EM-like algorithm from 
+#' the original Goerg (2013) paper is available (see References): 
+#' \code{algorithm.type = "EM"} calls \code{\link{foreca.EM}}.
+#' @param ... additional arguments passed to the available ForeCA algorithms.
 #' @return
-#' A list with similar output as \code{\link[stats]{princomp}}. Signals are
-#' ordered from most to least forecastable. 
+#' An object of class \code{foreca}: A list with similar output as \code{\link[stats]{princomp}}. Signals are ordered from most to least forecastable. 
 #' @export
 #' @examples
 #' \dontrun{
-#' XX = diff(log(EuStockMarkets[-c(1:50),])) * 100
+#' XX <- diff(log(EuStockMarkets[-c(1:50),])) * 100
 #' plot(ts(XX))
-#' ff = foreca(XX[,1:3], n.comp = 3)
+#' ff <- foreca(XX[,1:3], n.comp = 3)
 #' 
 #' summary(ff)
 #' plot(ff)
 #' }
 
-foreca <- function(series, method = "EM", ...) {
+foreca <- function(series, algorithm.type = c("EM"), ...) {
 
-  if (method == "EM"){
+  algorithm.type <- match.arg(algorithm.type)
+  if (algorithm.type == "EM"){
     out <- foreca.EM(series, ...)
   } else {
-    stop(paste("There is no such method as '", method, "' implemented."))
+    stop(paste("Algorithm type '", algorithm.type, "' is not implemented."))
   }
   
   class(out) <- c("foreca", class(out))
   
-  invisible(out)
+  return(out)
 }

@@ -6,51 +6,52 @@
 #'in the other two (see Details below).
 #'
 #'@details
-#'The \code{\link[sapa]{SDF}} function only returns the upper
-#'diagonal (including diagonal), since spectrum matrices are Hermitian. For
-#'efficient vectorized computations, however, the full matrices are required.
-#'Thus \code{SDF2mvspectrum} converts SDF output to a 3D array with
+#'The \code{\link[sapa]{SDF}} function only returns the upper diagonal 
+#'(including diagonal), since spectrum matrices are Hermitian. For fast
+#'vectorized computations, however, the full matrices are required.
+#'Thus \code{SDF2mvspectrum} converts SDF output to a \eqn{3D} array with
 #'number of frequencies in the first dimension and the spectral density matrix
-#'in the other two (see Details below).
+#'in the latter two.
 #'
 #'\code{SDF2mvspectrum} is typically not called by the user, but by
 #'\code{\link{mvspectrum}}.
 #'
 #'@param sdf.output an object of class \code{"SDF"} from \code{\link[sapa]{SDF}}
 #'@keywords ts manip
-
-SDF2mvspectrum <-
-function(sdf.output){
-  nseries = attr(sdf.output, "n.series")
-  nobs = attr(sdf.output, "n.sample")
-  nfreqs = length(attr(sdf.output, "frequency"))
-  f_lambda = array(0, dim = c(nfreqs, nseries, nseries))
+#'@export
+SDF2mvspectrum <- function(sdf.output) {
+  num.series <- attr(sdf.output, "n.series")
+  nobs <- attr(sdf.output, "n.sample")
+  nfreqs <- length(attr(sdf.output, "frequency"))
+  f.lambda <- array(0, dim = c(nfreqs, num.series, num.series))
   
-  if (nseries > 1){
-
-    col.sels = 1:nseries
-    ntotal = nseries
+  if (num.series > 1) {
     
-    for (ii in 1:ntotal){
-      f_lambda[, ii, ii:ntotal] = sdf.output[, col.sels]
-      col.sels = col.sels + (ntotal - ii)
-      col.sels = col.sels[-1]
+    col.sels <- seq_len(num.series)
+    # TODO: make this faster/vectorized
+    for (ii in seq_len(num.series)) {
+      f.lambda[, ii, ii:num.series] <- sdf.output[, col.sels]
+      col.sels <- col.sels + (num.series - ii)
+      col.sels <- col.sels[-1]
     }
     
-    fill_symmetric = function(mat){
-      mat = mat + Conj(t(mat))
+    #TODO: make this a separate function?
+    fill_symmetric <- function(mat) {
+      mat <- mat + Conj(t(mat))
       ind <- lower.tri(mat)
-      mat[ind] <- t(Conj(mat))[ind] 
+      mat[ind] <- t(Conj(mat))[ind]
+      diag(mat) <- diag(mat) / 2  # remove double count of diagonal
       return(mat)
     }
-      
-    f_lambda = apply(f_lambda, 1, fill_symmetric)
-    f_lambda = array(t(f_lambda), dim = c(nfreqs, nseries, nseries))
+    
+    f.lambda <- apply(f.lambda, 1, fill_symmetric)
+    f.lambda <- array(t(f.lambda), dim = c(nfreqs, num.series, num.series))
   } else {
-    f_lambda[, 1, 1] = c(sdf.output)
+    f.lambda[, 1, 1] <- c(sdf.output)
   }
-  f_lambda = f_lambda[-1, , ]
-  attr(f_lambda, "frequency") = attr(sdf.output, "frequency")[-1]
-
-  invisible(f_lambda)
-}
+  # remove frequency 0
+  f.lambda <- f.lambda[-1, , ]
+  attr(f.lambda, "frequency") <- attr(sdf.output, "frequency")[-1] * pi
+  
+  invisible(f.lambda)
+} 

@@ -1,22 +1,39 @@
-Update History of ForeCA:
-=========================
+# Update history of ForeCA
 
-Version 0.0.9
--------------
+## v0.1
 
-- changed capitalized ForeCA names to all lowercase. E.g. ForeCA.EM to foreca.EM; 
-- changed foreca.one_weightvector to foreca.EM.opt_comp()
+- changed underscore (`_`) in argument names to dot (`.`). E.g., `max_iter` to `max.iter`
+- cleaned up code for better readability
+  - changed `=` to `<-` assignment operator (big thanks to `tidy.source()`)
+  - removed unnecessary code (thanks `checkUsage()`)
+- cleaned up `NEWS` file and edited to conform to proper markdown format
+- changed `method` argument in `foreca()` to `algorithm.type`
+- moved the function to initialize a weightvector out from the `EM` class, to its own function (`initialize_weightvector()`)
+- replaced AR spectrum estimation to `"burg"` in `spec.ar()`
+- moved `tol`, `nstart`, and `max.iter` in `foreCA.EM()` into a `control` list (where `nstart` became `num.starts`)
+- improved display of `plot.foreca.EM.opt_weightvector`
+
+### Bug fixes
+
+- fix bug in `mvspectrum2wcov()`
+- fix bug in `mvspectrum()` (set `detrend = FALSE` and `fast = FALSE` in `astsa::mvspec`)
+- make all spectral estimate functions return the same number of frequencies (`T/2` +/- 1 depending on even/odd sample size)
+- fix bug in `fill_symmetric()` (double counting diagonal; only affected `SDF` type estimation)
 
 
-Version 0.0.8.1
----------------
+## v0.0.9
+
+- changed capitalized ForeCA names to lowercase (except for abbreviations such as `EM` or `MLE`). E.g., `ForeCA.EM` to `foreca.EM`; 
+- changed `foreca.one_weightvector()` to `foreca.EM.opt_weightvector()`
+
+
+## v0.0.8.1
 
 - added many additional functions in the package, including the main algorithm `ForeCA.EM`
 - changed to Roxygen2 documentation
 
 
-Initial release version 0.0.1:
-------------------------------
+## v0.0.1 (initial release)
 
 - base functions to estimate (spectral) entropies and Omega for (multivariate) time series
 - first draft of documentation
@@ -24,9 +41,12 @@ Initial release version 0.0.1:
 
 First version 0.0.1 written by Georg M. Goerg on May 14, 2012.
 
-Bugs & feature requests:
-========================
-* check what is the best to store the 3D array spectrum (frequency last or first?)
-* include other spectrum estimators
-* include a continuous version estimator of entropy; e.g. used to compute entropy for a fitted AR spectrum
+# Bugs & feature requests
+
+* check what is the best way to store the 3D array spectrum
+   - frequency last or first?
+   - `data.table` package?
+* include more spectrum estimators
+* include a continuous estimator of spectral entropy; can be used, e.g., to compute entropy for a fitted AR spectrum
 * compressed sensing type of sparsity in the spectrum; currently only by a heuristic thresholding rule
+* nice plotting for 3D spectra?

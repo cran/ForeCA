@@ -4,21 +4,25 @@
 #'\code{mvspec2mvspectrum} converts output from the \code{\link[astsa]{mvspec}} 
 #'function to the \code{\link{mvspectrum}} output.
 #'@details
-#'The \code{\link[astsa]{mvspec}} function has frequencies in the first dimension,
+#'The \code{\link[astsa]{mvspec}} function returns the multivariate spectrum
+#'in a \eqn{3D} array with frequencies in the first dimension, whereas 
 #'\code{\link{mvspectrum}} in the last.  \code{mvspec2mvspectrum} simply 
-#'reshapes this \eqn{3D} array to an array of size 
-#'\eqn{nfreqs \times nseries \times nseries}.
+#'reshapes the former to the latter array.
 #'
 #'@param mvspec.output output from \code{\link[astsa]{mvspec}}
 #'@return 
-#'An array of dimension \eqn{nfreqs \times nseries \times nseries}.
+#'\code{mvspec2mvspectrum} returns the same object as \code{\link{mvspectrum}}.
 #'@keywords ts manip
+#'@export
 
-mvspec2mvspectrum = function(mvspec.output){
-  out = R.utils::wrap(mvspec.output$fxx, map = list(3,1,2))
-  attr(out, "frequencies") = mvspec.output$freq
-  attr(out, "spectrum") = mvspec.output$spec
+mvspec2mvspectrum <- function(mvspec.output) {
+  out <- R.utils::wrap(mvspec.output$fxx, map = list(3, 1, 2))
+  if (ncol(out) == 1) {
+    # remove '+0i' imaginary part for univariate spectra
+    out <- Re(out)
+  }
+  attr(out, "frequencies") <- mvspec.output$freq
+  attr(out, "spectrum") <- mvspec.output$spec
   invisible(out)
-}
-
+} 
 

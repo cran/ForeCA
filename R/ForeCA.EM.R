@@ -1,127 +1,116 @@
-#' @title EM-like Algorithm to Estimate Optimal Transformations via ForeCA
+#' @title EM-like algorithm to estimate optimal ForeCA transformation
 #' @name foreca.EM
-#' @aliases foreca.EM.opt_comp
+#' @aliases foreca.EM.opt_weightvector
 #' @description 
 #' 
-#' \code{foreca.EM} estimates the optimal transformations to obtain forecastable
-#' signals from multivariate time series \code{series} 
+#' \code{foreca.EM} estimates the optimal transformation of multivariate time
+#' \code{series} to obtain forecastable signals using an EM-like algorithm.
 #' 
-#' @inheritParams foreca.EM.opt_comp
+#' @inheritParams foreca.EM.opt_weightvector
 #' @param n.comp number of components to be extracted
-#' @param plot indicator; if \code{TRUE} a plot of the current optimal 
-#' solution \eqn{\mathbf{w}_i^*} will be shown and the plot is updated for each 
-#' new optimal weightvector.
+#' @param plot logical; if \code{TRUE} a plot of the current optimal 
+#' solution \eqn{\mathbf{w}_i^*} will be shown and updated in each iteration
+#' of the EM-like algorithm.
 #' @return
 #' A list with similar output as \code{\link[stats]{princomp}}. Signals are
 #' ordered from most to least forecastable. 
 #' @export
 #' @examples
 #' \dontrun{
-#' XX = diff(log(EuStockMarkets[-c(1:50),])) * 100
+#' XX <- diff(log(EuStockMarkets[-c(1:50),])) * 100
 #' plot(ts(XX))
-#' foreca = foreca.EM(XX[,1:3], n.comp = 3)
+#' foreca <- foreca.EM(XX[,1:3], n.comp = 3)
 #' 
 #' summary(foreca)
 #' plot(foreca)
 #' }
 
 foreca.EM <- function(series, 
-                      spectrum_method = "multitaper", 
-                      n.comp = 2, 
-                      tol = 1e-4, 
-                      max_iter = 200, 
-                      kernel = NULL, 
-                      nstart = 10, 
-                      plot = TRUE,
-                      threshold = 0,
+                      spectrum.method = 
+                        c("multitaper", "direct", "lag window", "wosa", "mvspec"),
+                      n.comp = 2, kernel = NULL, plot = TRUE, threshold = 0, 
+                      control = list(tol = 1e-6, max.iter = 200, num.starts = 10), 
                       smoothing = FALSE, ...) {
   
+  spectrum.method <- match.arg(spectrum.method)
   if (!is.ts(series)) {
     series <- ts(series)
   }
   
-  TT <- nrow(series)
-  
   PW <- whiten(series)
   UU <- PW$U
-    
-  kk <- ncol(UU)
-  null_space <- diag(1, kk)
   
-  ff_UU <- mvspectrum(UU, method = spectrum_method, normalize = TRUE, ...)
+  kk <- ncol(UU)
+  null.space <- diag(1, kk)
+  
+  ff.UU <- mvspectrum(UU, method = spectrum.method, normalize = TRUE, ...)
   if (!is.null(kernel)) {
-    ff_UU <- sweep(ff_UU, 1, kernel(attr(ff_UU, "frequency")), FUN = "*")
-    ff_UU <- normalize_mvspectrum(ff_UU)
+    ff.UU <- sweep(ff.UU, 1, kernel(attr(ff.UU, "frequency")), FUN = "*")
+    ff.UU <- normalize_mvspectrum(ff.UU)
   }
   
-  out <- list()
-  out$loadings <- matrix(NA, ncol = n.comp, nrow = kk)
-  out$h <- rep(NA, n.comp)
-  out$h.tries <- matrix(NA, ncol = n.comp, nrow = nstart)
-
-  out$weights <- list()
-  out$Omega2 <- rep(NA, n.comp)
-  out$h.orig <- rep(NA, n.comp)
-  out$best.tries <- rep(NA, n.comp)
-  for (ii in 1:n.comp) {
-    UU_ortho <- as.matrix(UU) %*% null_space
-    ff_UU_ortho <- NULL
-    #ff_UU_ortho <- array( t(apply(ff_UU, 1, 
-    #                                   function(mat, x) t(x) %*% mat %*% x, 
-    #                                                    x = null_space)), 
-    #                dim = c(dim(ff_UU)[1], dim(null_space)[2], dim(null_space)[2] ) )
-    #print(UU_ortho[1:2, ])
-    if (ii == kk){
+  out <- list(loadings = matrix(NA, ncol = n.comp, nrow = kk),
+              h = rep(NA, n.comp),
+              h.tries = matrix(NA, ncol = n.comp, nrow = control$num.starts),
+              weights = list(),
+              Omega2 = rep(NA, n.comp),
+              h.orig = rep(NA, n.comp),
+              best.tries = rep(NA, n.comp))
+  
+  for (ii in seq_len(n.comp)) {
+    UU.ortho <- as.matrix(UU) %*% null.space
+    ff.UU.ortho <- NULL
+    # ff.UU.ortho <- array( t(apply(ff.UU, 1, function(mat, x) t(x) %*% mat
+    # %*% x, x = null.space)), dim = c(dim(ff.UU)[1], dim(null.space)[2],
+    # dim(null.space)[2] ) ) print(UU.ortho[1:2, ])
+    if (ii == kk) {
       weight_ortho <- 1
-      out$h[ii] <- spectral_entropy(UU_ortho, 
-                                    spectrum_method = spectrum_method,
+      out$h[ii] <- spectral_entropy(UU.ortho, spectrum.method = spectrum.method, 
                                     threshold = threshold)
       
     } else {
-      foreca_ortho <- foreca.EM.opt_comp(UU_ortho, 
-                                                 f_U = ff_UU_ortho,
-                                                 spectrum_method = spectrum_method, 
-                                                 kernel = kernel, 
-                                                 nstart = nstart, 
-                                                 threshold = threshold,
-                                                 smoothing = smoothing)
-      out$best.tries[ii] <- foreca_ortho$best.try
-      out$h.orig[ii] <- foreca_ortho$h.trace[1]
-      weight_ortho <- foreca_ortho$loadings
-      out$weights[[ii]] <- foreca_ortho$weights
-      out$Omega2[ii] <- foreca_ortho$Omega
+      foreca.opt.wv <- 
+        foreca.EM.opt_weightvector(UU.ortho, f.U = ff.UU.ortho, 
+                                   spectrum.method = spectrum.method, 
+                                   kernel = kernel, control = control,
+                                   threshold = threshold, 
+                                   smoothing = smoothing)
+      out$best.tries[ii] <- foreca.opt.wv$best.try
+      out$h.orig[ii] <- foreca.opt.wv$h.trace[1]
+      weight_ortho <- foreca.opt.wv$loadings
+      out$weights[[ii]] <- foreca.opt.wv$weights
+      out$Omega2[ii] <- foreca.opt.wv$Omega
       
-      out$h[ii] <- foreca_ortho$h
-      out$h.tries[, ii] <- foreca_ortho$h.tries
+      out$h[ii] <- foreca.opt.wv$h
+      out$h.tries[, ii] <- foreca.opt.wv$h.tries
       
       # plot results
       if (plot) {
-        plot(foreca_ortho, main = paste("Component", ii))
-        Sys.sleep(0.5)
+        plot(foreca.opt.wv, main = paste("Component", ii))
+        Sys.sleep(0.25)
       }
     }
-
-    out$loadings[, ii] <- null_space %*% weight_ortho
-    out$loadings[, ii] <- out$loadings[, ii] / base::norm(as.matrix(out$loadings[, ii]), 
-                                                        "F")
-    null_space <- Null(out$loadings[, 1:ii])
+    
+    out$loadings[, ii] <- null.space %*% weight_ortho
+    out$loadings[, ii] <- 
+      out$loadings[, ii]/base::norm(as.matrix(out$loadings[, ii]), "F")
+    null.space <- Null(out$loadings[, 1:ii])
   }
   
   if (any(is.na(out$loadings))) {
     out$loadings[, kk] <- Null(out$loadings[, -kk])
-    out$loadings[, kk] <- out$loadings[, kk]/base::norm(as.matrix(out$loadings[, kk]), 
-                                                        "F")
+    out$loadings[, kk] <- 
+      out$loadings[, kk]/base::norm(as.matrix(out$loadings[, kk]), "F")
   }
   
-  out$x <- series
-  out$tol <- tol
+  out <- c(out, 
+           list(x = series,
+                control = control,
+                scores2 = ts(as.matrix(UU) %*% out$loadings, 
+                             start = start(series), end = end(series)),
+                loadings = PW$Sigma0.5inv %*% out$loadings))
   
-  out$scores2 <- ts(as.matrix(UU) %*% out$loadings, 
-                    start = start(series), end = end(series))
-  
-  out$loadings <- PW$Sigma0.5inv %*% out$loadings
-  out$loadings <- sweep(out$loadings, 2,
-                        apply(out$loadings, 2, norm, "2"), "/")
+  out$loadings <- sweep(out$loadings, 2, apply(out$loadings, 2, norm, "2"), "/")
   out$Sigma0.5 <- PW$Sigma0.5
   out$Sigma0.5inv <- PW$Sigma0.5inv
   # make the sign of the loadings consistent for repeated runs
@@ -131,7 +120,7 @@ foreca.EM <- function(series,
   out$scores <- ts(scale(series, scale = FALSE, center = TRUE) %*% out$loadings, 
                    start = start(series), end = end(series))
   
-  omega.scores <- Omega(out$scores, spectrum_method = spectrum_method, 
+  omega.scores <- Omega(out$scores, spectrum.method = spectrum.method, 
                         threshold = threshold)
   
   omega_order <- order(omega.scores, decreasing = TRUE)
@@ -140,8 +129,8 @@ foreca.EM <- function(series,
   omega.scores <- omega.scores[omega_order]
   out$loadings <- out$loadings[, omega_order]
   
-  colnames(out$scores) <- paste("ForeC", 1:ncol(out$scores), sep = "")
-  colnames(out$loadings) <- paste("ForeC", 1:ncol(out$loadings), sep = "")
+  colnames(out$scores) <- paste0("ForeC", seq_len(ncol(out$scores)))
+  colnames(out$loadings) <- paste0("ForeC", seq_len(ncol(out$loadings)))
   
   rownames(out$loadings) <- colnames(series)
   class(out$loadings) <- "loadings"
@@ -152,155 +141,159 @@ foreca.EM <- function(series,
     out$mixing <- NULL
   }
   
-  out$spectrum_method <- spectrum_method
-  out$Omega <- omega.scores #Omega(out$scores, spectrum_method = spectrum_method, threshold = threshold)
-  out$Omega2[n.comp] = out$Omega[n.comp]
-
-  out$Omega.matrix <- out$loadings %*% diag(out$Omega) %*% t(out$loadings)
-  out$threshold <- threshold
-  out$sdev <- out$Omega
-  out$lambdas <- out$Omega
+  out <- c(out,
+           list(spectrum.method = spectrum.method,
+                Omega = omega.scores))
+  
+  out <- c(out,
+           list(Omega.matrix = out$loadings %*% diag(out$Omega) %*% t(out$loadings),
+                threshold = threshold,
+                sdev = out$Omega,
+                lambdas = out$Omega))
+  
   class(out) <- c("foreca", "princomp")
   invisible(out)
-}
+} 
 
 
 #' @rdname foreca.EM
 #' @keywords manip
-#' @param series an \eqn{T \times n} array containg a multivariate time series. 
-#' Can be a \code{matrix}, \code{data.frame}, or a multivariate \code{ts} object
-#' @param f_U multivariate spectrum of class \code{mvspectrum} with 
+#' @param series a \eqn{T \times K} array containing a multivariate time series. 
+#' Can be a \code{matrix}, \code{data.frame}, or a multivariate \code{ts} object.
+#' @param f.U multivariate spectrum of class \code{mvspectrum} with 
 #' \code{normalize = TRUE}
-#' @param spectrum_method string; method to estimate the spectrum. See 
+#' @param spectrum.method string; method to estimate the spectrum; see 
 #' \code{\link{mvspectrum}}.
-#' @param entropy_method string; method to estimate the entropy. See 
+#' @param entropy.method string; method to estimate the entropy; see 
 #' \code{\link{discrete_entropy}}.
-#' @param tol tolerance level for convergence
-#' @param max_iter maximum number of iterations
+#' @param control a list with control parameters for the iterative EM algorithm:
+#' i) \code{tol} sets the tolerance level for convergence; ii) \code{max.iter}
+#' sets the maximum number of iterations; and iii) \code{num.starts} determines how 
+#' many random starts should be done to avoid local minima (default:\code{5})
 #' @param kernel an R function \code{kernel = function(lambda) ...} that 
-#' weights the frequencies; if \code{NULL} 
-#' (default) all frequencies get equal weight.
-#' @param nstart how many random starts should be done to avoid local minima?
-#' @param threshold set spectral density values below \code{threshold} to 0
-#' @param smoothing indicator; if \code{TRUE} then spectrum will be additionally
-#' smoothed using \code{\link[mgcv]{gam}}. See \code{\link{mvspectrum}} for details.
+#' weighs the Fourier frequencies; if \code{NULL} (default) all frequencies get
+#' equal weight.
+#' @param threshold set estimate of spectral density below \code{threshold} to 0
+#' (and renormalize so it adds up to one)
+#' @param smoothing logical; if \code{TRUE} the spectral density estimate will be
+#' smoothed using \code{\link[mgcv]{gam}}. See \code{\link{mvspectrum}} for
+#' further details.
 #' @param ... other arguments passed to \code{\link{mvspectrum}}
 #' @export
 #' @examples
 #' \dontrun{
-#' XX = diff(log(EuStockMarkets)) * 100
-#' one_weight = foreca.EM.opt_comp(XX, smoothing = FALSE)
+#' XX <- diff(log(EuStockMarkets)) * 100
+#' one.weight <- foreca.EM.opt_weightvector(XX, smoothing = FALSE)
 #' 
-#' plot(one_weight)
+#' plot(one.weight)
 #' }
 #' 
-foreca.EM.opt_comp <- function(series,
-                                       f_U = NULL,
-                                       spectrum_method = "multitaper", 
-                                       entropy_method = "MLE",
-                                       tol = 1e-4, 
-                                       max_iter = 100, 
-                                       kernel = NULL, 
-                                       nstart = 5, 
-                                       threshold = 0,
-                                       smoothing = FALSE,
-                                       ...) {
+foreca.EM.opt_weightvector <- 
+  function(series, f.U = NULL, 
+           spectrum.method = 
+             c("multitaper", "direct", "lag window", "wosa", 
+               "mvspec"), 
+           entropy.method = "MLE", 
+           control = list(tol = 1e-6, max.iter = 100, num.starts = 10),
+           kernel = NULL, threshold = 0, smoothing = FALSE, ...) {
+  
+  spectrum.method <- match.arg(spectrum.method)
   if (!is.ts(series)) {
     series <- ts(series)
   }
-    
+  
   nseries <- ncol(series)
   PW <- whiten(series)
   UU <- PW$U
-  #print(UU[1:3, ])
-  ff_UU <- f_U
-  if (is.null(ff_UU)){
-    ff_UU <- mvspectrum(UU, method = spectrum_method, normalize = TRUE, ...)
+  # print(UU[1:3, ])
+  ff.UU <- f.U
+  if (is.null(ff.UU)) {
+    ff.UU <- mvspectrum(UU, method = spectrum.method, normalize = TRUE, 
+                        ...)
     if (!is.null(kernel)) {
-      ff_UU <- sweep(ff_UU, 1, kernel(attr(ff_UU, "frequency")), FUN = "*")
-      ff_UU <- normalize_mvspectrum(ff_UU)
+      ff.UU <- sweep(ff.UU, 1, kernel(attr(ff.UU, "frequency")), FUN = "*")
+      ff.UU <- normalize_mvspectrum(ff.UU)
     }
   }
   
-  Omega_best <- 0
-  HH_best <- Inf
-  WW_best <- NA
-  HH_tries <- rep(NA, nstart)
-  HH_trace <- NA
+  Omega.best <- 0
+  HH.best <- Inf
+  WW.best <- NA
+  HH.tries <- rep(NA, control$num.starts)
+  HH.trace <- NA
   converged <- FALSE
   
-  for (TRY in 1:nstart) {
-    temp_converged <- FALSE
+  for (TRY in seq_len(control$num.starts)) {
+    temp.converged <- FALSE
     
     WW <- matrix(NA, ncol = nseries, nrow = 1)
     if (TRY == 1) {
       WW[1, ] <- PW$Sigma0.5[, 1]
       WW[1, ] <- WW[1, ]/base::norm(WW[1, ], "2")
     } else if (TRY == 2) {
-      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "SFA_slow")
+      WW[1, ] <- initialize_weightvector(UU, ff.UU, method = "SFA.slow")
     } else if (TRY == 3) {
-      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "SFA_fast")
-    } else if (TRY == 4){
-      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "SFA_slow", 
-                                             lag = frequency(series))
+      WW[1, ] <- initialize_weightvector(UU, ff.UU, method = "SFA.fast")
+    } else if (TRY == 4) {
+      WW[1, ] <- initialize_weightvector(UU, ff.UU, method = "norm")
     } else if (TRY == 5) {
-      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "max")
+      WW[1, ] <- initialize_weightvector(UU, ff.UU, method = "max")
     } else if (TRY == 6) {
-      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "unif")
+      WW[1, ] <- initialize_weightvector(UU, ff.UU, method = "unif")
     } else if (TRY == 7) {
-      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "norm")
+      WW[1, ] <- initialize_weightvector(UU, ff.UU, method = "SFA.slow", 
+                                             lag = frequency(series))
     } else {
-      WW[1, ] <- foreca.EM.init_weightvector(UU, ff_UU, method = "cauchy")
+      WW[1, ] <- initialize_weightvector(UU, ff.UU, method = "cauchy")
     }
-  
+    
     WW[1, ] <- WW[1, ]/sign(WW[1, which.max(abs(WW[1, ]))])
-        
-    HH <- rep(NA, 1)
-    OO <- rep(NA, 1)
-    HH_after_M <- rep(NA, 1)
-    OO_after_M <- rep(NA, 1)
     
-    #print((UU %*% WW[1, ])[1:3])
-    
-    for (ii in 1:max_iter) {
-      f_current <- foreca.EM.E_step(f_U = ff_UU, weights = WW[ii, ])
-      #f_current_direct <- mvspectrum(UU %*% WW[ii, ], method = spectrum_method,
-      #                               normalize = TRUE, smoothing = smoothing)
-      #matplot(cbind(f_current, f_current_direct), log = "y")
-      #f_current <- f_current_direct
-      #Sys.sleep(0.1)
-      HH[ii] <- foreca.EM.h(weights_new = WW[ii, ], f_U = ff_UU, 
-                            f_current = f_current, base = NULL)
+    HH <- rep(NA, 1)  
+    for (ii in seq_len(control$max.iter)) {
+      if (smoothing) {
+        f.current <- mvspectrum(UU %*% WW[ii, ], 
+                                method = spectrum.method, 
+                                normalize = TRUE, smoothing = TRUE)
+      } else {
+        f.current <- foreca.EM.E_step(f.U = ff.UU, weightvector = WW[ii, ])
+      }
+      # f.current_direct <- mvspectrum(UU %*% WW[ii, ], method =
+      # spectrum.method, normalize = TRUE, smoothing = smoothing)
+      # matplot(cbind(f.current, f.current_direct), log = 'y') f.current <-
+      # f.current_direct Sys.sleep(0.1)
+      HH[ii] <- foreca.EM.h(weightvector.new = WW[ii, ], f.U = ff.UU, 
+                            f.current = f.current, 
+                            base = NULL)
       
-      WW <- rbind(WW, foreca.EM.M_step(ff_UU, f_current, 
-                                       minimize = TRUE)$vector)
+      WW <- rbind(WW, foreca.EM.M_step(ff.UU, f.current, minimize = TRUE)$vector)
       
-      HH_tries[TRY] <- HH[length(HH)]
+      HH.tries[TRY] <- HH[length(HH)]
       if (ii > 1) {
-        rel_improv = HH[ii-1] / HH[ii]
+        rel_improv <- HH[ii - 1]/HH[ii]
         # cat('Increase in h(w):', round(HH[ii] - HH[ii-1], 4), '\n')
-        if (ii > 1 && (abs(rel_improv - 1) < tol)) {
+        if (abs(rel_improv - 1) < control$tol) {
           # convergence criterion
-          temp_converged <- TRUE
+          temp.converged <- TRUE
           break
         }
       }
     }  # end of iter
+    
+    Omega.tmp <- Omega(UU %*% WW[nrow(WW), ], spectrum.method = spectrum.method, 
+                       threshold = threshold)  #100*(1 - out$h) #Omega.best
 
-    Omega_temp <- Omega(UU %*% WW[nrow(WW),], spectrum_method = spectrum_method, 
-                        threshold = threshold) #100*(1 - out$h) #Omega_best
-    #print(Omega_temp)
-    #if (HH[length(HH)] < HH_best) {
-    if (Omega_temp > Omega_best) {
-      WW_best <- WW
-      HH_trace <- HH
-      HH_best <- HH[length(HH)]
-      Omega_best <- Omega_temp
-      converged <- temp_converged
-      best_try <- TRY
-      first_rel_improv <- HH_best / HH[1]
+    # print(Omega.tmp) if (HH[length(HH)] < HH.best) {
+    if (Omega.tmp > Omega.best) {
+      WW.best <- WW
+      HH.trace <- HH
+      HH.best <- HH[length(HH)]
+      Omega.best <- Omega.tmp
+      converged <- temp.converged
+      best.try <- TRY
+      first.relative.improv <- HH.best/HH[1]
     }
-    if (!temp_converged) {
+    if (!temp.converged) {
       TRY <- TRY - 1
     }
   }  # end of TRY
@@ -309,47 +302,39 @@ foreca.EM.opt_comp <- function(series,
     warning("Convergence has not been reached. Please try again.")
   }
   
-  out <- list()
-  out$n.obs <- nrow(series)
-  #out$x <- series
-  out$tol <- tol
-  out$weights <- WW_best
-  rownames(out$weights) = paste("Iter", 1:nrow(out$weights))
-  colnames(out$weights) = colnames(series)
+  rownames(WW.best) <- paste("Iter", seq_len(nrow(WW.best)))
+  colnames(WW.best) <- colnames(series)
   
-  out$best.try <- best_try
+  out <- list(n.obs = nrow(series),
+              control = control,
+              weights = WW.best,
+              best.try = best.try,
+              h.tries = HH.tries,
+              h.trace = HH.trace,
+              h = HH.best,
+              h.rel.improvement = first.relative.improv,
+              iterations = nrow(WW.best),
+              converged = converged,
+              spectrum.method = spectrum.method,
+              entropy.method = entropy.method,
+              smoothing = smoothing)
   
-  out$h.trace <- HH_trace
-  out$h <- HH_best
-  out$h.rel.improvement <- first_rel_improv
   out$best.weights <- as.matrix(out$weights[nrow(out$weights), ])
-  
-  out$iterations <- nrow(WW_best)
-  out$converged <- converged
-  
   out$loadings <- PW$Sigma0.5inv %*% out$best.weights
   out$Sigma0.5 <- PW$Sigma0.5
   out$Sigma0.5inv <- PW$Sigma0.5inv
-  #out$loadings <- sweep(out$loadings, 2, 
-  #                      apply(out$loadings, 2, 
-  #                            function(x) base::norm(as.matrix(x), "F")))
-  
+
+  # make the sign of the first loading consistent across runs
   out$loadings <- out$loadings * (2 * (out$loadings[1] > 0) - 1)
-  
   rownames(out$loadings) <- colnames(series)
   class(out$loadings) <- "loadings"
   
-  out$scores <- ts(scale(series, scale = FALSE, center = TRUE) %*% out$loadings)
+  out <- c(out,
+           list(scores = 
+                  ts(scale(series, scale = FALSE, center = TRUE) %*% out$loadings),
+                Omega = Omega.best,  #Omega(out$scores, spectrum.method = spectrum.method, threshold = threshold) #100*(1 - out$h) #Omega.best
+                best.f = foreca.EM.E_step(f.U = ff.UU, weightvector = out$best.weights)))
   
-  out$Omega <- Omega_best #Omega(out$scores, spectrum_method = spectrum_method, 
-                     #threshold = threshold) #100*(1 - out$h) #Omega_best
-  out$h.tries <- HH_tries
-  out$spectrum_method <- spectrum_method
-  out$entropy_method <- entropy_method
-  out$smoothing <- smoothing
-  out$best.f <- foreca.EM.E_step(f_U = ff_UU, weights = out$best.weights)
-  
-  class(out) <- "foreca.EM.opt_comp"
+  class(out) <- "foreca.EM.opt_weightvector"
   invisible(out)
 } 
-
