@@ -1,93 +1,133 @@
-#'@title Estimates spectrum of multivariate time series
-#'@rdname mvspectrum
-#'@aliases mvspectrum normalize_mvspectrum mvspec2mvspectrum SDF2mvspectrum
-#'@description
-#'Spectra of a multivariate time series are matrix-valued functions 
-#'of the frequency \eqn{\lambda}. \code{mvspectrum} estimates these spectra 
-#'and puts them in a 3D array of dimension \eqn{num.freqs \times K \times K}.
-#'
-#'@param series univariate or multivariate time series
-#'@param method method for spectrum estimation; see \code{method} argument in
-#'\code{\link[sapa]{SDF}} or use \code{'mvspec'} for estimation via 
-#'\code{\link[astsa]{mvspec}} from the \pkg{astsa} package.
-#'@param normalize logical; if \code{TRUE} the spectrum will be normalized 
-#'such that it adds up to \eqn{0.5} (for univariate spectra) or to 
-#'\eqn{0.5 \times I_n} (for multivariate spectra from \eqn{n} time series).
-#'@param smoothing logical; if \code{TRUE} the spectrum gets additionally
-#'smoothed using a nonparametric smoother from \code{\link[mgcv]{gam}} with an
-#'automatically chosen (cross-validation) smoothing parameter.
-#'@param \dots additional arguments passed to \code{\link[sapa]{SDF}} or 
-#'\code{\link[astsa]{mvspec}} (e.g., \code{taper})
-#'@return 
-#'\code{mvspectrum} returns a 3D array of dimension 
-#'\eqn{num.freqs \times K \times K}, where
-#'\itemize{
+#' @title Estimates spectrum of multivariate time series
+#' @name mvspectrum
+#' @importFrom sapa SDF
+#' @importFrom ifultools checkScalarType
+#' @description
+#' The spectrum of a multivariate time series is a matrix-valued function of the 
+#' frequency \eqn{\lambda \in [-\pi, \pi]}, which is symmetric/Hermitian around 
+#' \eqn{\lambda = 0}.
+#' 
+#' \code{mvspectrum} estimates it and returns a 3D array of dimension 
+#' \eqn{num.freqs \times K \times K}.  Since the spectrum is symmetric/Hermitian around
+#'  \eqn{\lambda = 0} it is sufficient to store only positive frequencies.  
+#' In the implementation in this package we thus usually 
+#' consider only positive frequencies (omitting \eqn{0}); \code{num.freqs} refers
+#' to the number of positive frequencies only.
+#' 
+#' @inheritParams common-arguments
+#' @param method string; method for spectrum estimation; see \code{method} argument in
+#' \code{\link[sapa]{SDF}} (in the \pkg{sapa} package); use 
+#' \code{"mvspec"} to use \code{\link[astsa]{mvspec}} (\pkg{astsa} package); or
+#' use \code{"pgram"} to use \code{\link[stats]{spec.pgram}}.
+#' @param normalize logical; if \code{TRUE} the spectrum will be normalized (see 
+#' Value below for details).
+#' @param \dots additional arguments passed to \code{\link[sapa]{SDF}} or 
+#' \code{\link[astsa]{mvspec}} (e.g., \code{taper})
+#' @return 
+#' \code{mvspectrum} returns a 3D array of dimension \eqn{num.freqs \times K \times K}, where
+#' \itemize{
 #'  \item num.freqs is the number of frequencies
 #'  \item K is the number of series (columns in \code{series}).
-#'}
-#'@references 
-#'See References in \code{\link[stats]{spectrum}}, \code{\link[sapa]{SDF}}, 
-#'\code{\link[astsa]{mvspec}}.
-#'@keywords ts
-#'@export
-#'@importFrom sapa SDF
-#'@importFrom mgcv gam
-#'@importFrom ifultools checkScalarType
-#'@import nlme
-#'@import splus2R
-#'@examples
-#'
-#'# use SDF first and then SDF2mvspectrum
-#'set.seed(1)
-#'XX <- cbind(rnorm(100), arima.sim(n = 100, list(ar= 0.9)))
-#'ss3d <- mvspectrum(XX)
-#'dim(ss3d)
-#'
-#'ss3d[2,,] # at omega_1; in general complex-valued, but Hermitian
-#'identical(ss3d[2,,], Conj(t(ss3d[2,,]))) # is Hermitian
-#'
+#' }
+#' @references 
+#' See References in \code{\link[stats]{spectrum}}, \code{\link[sapa]{SDF}}, 
+#' \code{\link[astsa]{mvspec}}.
+#' @keywords ts
+#' @export
+#' @examples
+#' 
+#' set.seed(1)
+#' XX <- cbind(rnorm(100), arima.sim(n = 100, list(ar = 0.9)))
+#' ss3d <- mvspectrum(XX)
+#' dim(ss3d)
+#' 
+#' ss3d[2,,] # at omega_1; in general complex-valued, but Hermitian
+#' identical(ss3d[2,,], Conj(t(ss3d[2,,]))) # is Hermitian
+#' 
+#' ss <- mvspectrum(XX[, 1], smoothing = TRUE)
+#' 
+#' \dontrun{
+#'   mvspectrum(XX, normalize = TRUE)
+#' }
+#' ss <- mvspectrum(whiten(XX)$U, normalize = TRUE)
+#' 
+#' xx <- scale(rnorm(100), center = TRUE, scale = FALSE)
+#' var(xx)
+#' sum(mvspectrum(xx, normalize = FALSE, method = "direct")) * 2
+#' sum(mvspectrum(xx, normalize = FALSE, method = "wosa")) * 2
+#' 
+#' 
 
 mvspectrum <- function(series, 
                        method = 
-                         c("multitaper", "direct", "lag window", "wosa", 
+                         c("pgram", "multitaper", "direct", "lag window", "wosa", 
                            "mvspec", "ar"),
-                       normalize = FALSE, smoothing = FALSE, Sigma.X = NULL, ...) {
+                       normalize = FALSE, smoothing = FALSE, ...) {
   
   method <- match.arg(method)
+  
   series <- as.matrix(series)
   num.series <- ncol(series)
   num.obs <- nrow(series)
   
+  if (num.series > 1 && smoothing) {
+    warning("Smoothing can only be set to TRUE for univariate time series.\n",
+            "Will be ignored for multivariate time series.")
+  }
+  
+  if (normalize) {
+    # if the data is not uncorrelated and has unit variance, 
+    # then dont allow to normalize
+    check_whitened(series)
+  }
+  
   if (method == "mvspec") {
-    out <- mvspec2mvspectrum(astsa::mvspec(series, plot = FALSE, 
-                                           detrend = FALSE, fast = FALSE, ...))
+    stopifnot(requireNamespace("astsa", quietly = TRUE))
+    out <- .mvspec2mvspectrum(astsa::mvspec(series, plot = FALSE, 
+                                            detrend = FALSE, fast = FALSE, ...))
   } else if (method == "ar") {
     stopifnot(num.series == 1)
     out <- spec.ar(c(series), method = "burg", plot = FALSE,
                    n.freq = ceiling(length(series) / 2 + 1))$spec[-1]
-  } else {
-    out <- SDF2mvspectrum(sdf.output = SDF(series, method = method, 
-                                           recenter = TRUE, ...))
-    out <- as.array(out)
-    if (length(dim(out)) == 1) {
+  } else if (method %in% c("wosa", "multitaper", "lag window", "direct")) {
+    stopifnot(requireNamespace("sapa", quietly = TRUE)) 
+    out <- .SDF2mvspectrum(sdf.output = sapa::SDF(series, method = method, 
+                                                  recenter = TRUE, 
+                                                  npad = num.obs, ...))
+    if (num.series == 1) {
       out <- array(out, dim = c(length(out), 1, 1))
+    } else {
+      out <- as.array(out)
     }
-    # keep only every second frequency starting at first non-zero frequency
-    # (SDF returns spectral densities on [0, pi] of length T; and not of T/2)
-    every.2nd <- seq(2, dim(out)[1], by = 2)
-    out <- out[every.2nd,,]
+  } else if (method == "pgram") {
+    out <- mvpgram(series)
+  } else {
+    stop("Method '", method, "' is not implemented.\n", 
+         "Please specify other method.")
   }
   
   if (smoothing && num.series == 1) {
-    mod.tmp <- gam(c(out) ~ s(c(seq_along(out))),
-                   family = gaussian(), method = "REML")
-    out <- mod.tmp$fit
+    if (requireNamespace("mgcv", quietly = TRUE)) {
+      mod.tmp <- mgcv::gam(c(out) ~ s(seq_along(out)),
+                           family = Gamma(link = "log"), method = "REML")
+      dim.out <- dim(out)
+      # dispersion = 1 for an exponential distribution
+      out <- predict(mod.tmp, type = "response", dispersion = 1)
+      dim(out) <- dim.out
+    } else {
+      warning("Spectrum was not smoothed since this requires the 'mgcv' package.\n", 
+              "Please install it.")
+    }
   }
   
-  out <- out/2
+  # divide by number of observations  = 2 * number of positive frequencies
+  # This takes case of 
+  #   - divide by 2 since it is symmetric around 0
+  #   - divide by number of frequencies so that the sum over spectrum = variance
+  out <- out / num.obs
   
   if (normalize) {
-    out <- normalize_mvspectrum(out, Sigma.X = Sigma.X)
+    out <- normalize_mvspectrum(out)
   }
   # add frequencies from (0, pi]; remove '0' frequency
   if (num.series == 1) {
@@ -95,6 +135,7 @@ mvspectrum <- function(series,
   } else {
     num.freqs.in.0.pi <- nrow(out)
   }
+  
   attr(out, "frequency") <- 
     seq(1, num.freqs.in.0.pi, by = 1) / (2 * num.freqs.in.0.pi + 1) * (2 * pi)
   class(out) <- "mvspectrum"
@@ -102,45 +143,209 @@ mvspectrum <- function(series,
   invisible(out)
 } 
 #' @rdname mvspectrum
+#' @description
+#' \code{normalize_mvspectrum} normalizes the spectrum such that
+#' it adds up to \eqn{0.5} over all positive frequencies (by symmetry it will 
+#' add up to 1 over the whole range -- thus the name \emph{normalize}). 
+#' 
+#' For a \eqn{K}-dimensional time series it adds
+#' up to a Hermitian \eqn{K \times K} matrix with 0.5 in the diagonal and
+#' imaginary elements (real parts equal to \eqn{0}) in the off-diagonal. 
+#' Since it is Hermitian the mvspectrum will add up to the identity matrix
+#' over the whole range of frequencies, since the off-diagonal elements
+#' are purely imaginary (real part equals 0) and thus add up to 0.
+#' 
+#' @details
+#' For an orthonormal time series \eqn{\mathbf{U}_t} the raw periodogram adds up 
+#' to \eqn{I_K} 
+#' over all (negative and positive) frequencies.  Since we only consider
+#' positive frequencies, the normalized multivariate spectrum should add up to
+#' \eqn{0.5 \cdot I_K} plus a Hermitian imaginary matrix (which will add up to zero
+#' when combined with its symmetric counterpart.)
+#' As we often use non-parametric smoothing for less variance, the spectrum estimates
+#' do not satisfy this identity exactly. \code{normalize_mvspectrum} thus adjust the 
+#' estimates so they satisfy it again exactly. 
+#'  
 #' @keywords manip
-#' @param mvspectrum.output an object of class \code{"mvspectrum"}
-#' @param Sigma.X optional; covariance matrix of \code{series}
+#' @inheritParams common-arguments
 #' @export
 #' @return
-#' \code{normalize_mvspectrum} returns a normalized spectrum:
+#' \code{normalize_mvspectrum} returns a normalized spectrum over 
+#' positive frequencies, which:
 #' \describe{
-#'   \item{univariate:}{output adds up to \eqn{0.5}.}
-#'   \item{multivariate:}{output adds up to \eqn{0.5 \, I_n}, 
-#'         where \eqn{I_n} is the \eqn{n \times n} identity matrix.}
+#'   \item{univariate:}{adds up to \eqn{0.5},}
+#'   \item{multivariate:}{adds up to Hermitian \eqn{K \times K} matrix
+#'   with 0.5 in the diagonal and purely imaginary elements in the off-diagonal.} 
 #' }
 #' 
 #' @examples
-#' 
-#' xx <- rnorm(1000)
-#' var(xx)
-#' mean(mvspectrum(xx, normalize = FALSE, method = "direct")) * 2
-#' 
-#' mean(mvspectrum(xx, normalize = FALSE, method = "wosa")) * 2
-#' mean(mvspectrum(xx, normalize = TRUE, method = "wosa")) * 2
+#' xx <- scale(rnorm(100), center = TRUE, scale = FALSE)
+#' ss <- mvspectrum(xx)
+#' ss.n <- normalize_mvspectrum(ss)
+#' sum(ss.n)
+#' # multivariate
+#' UU <- whiten(matrix(rnorm(40), ncol = 2))$U
+#' S.U <- mvspectrum(UU, method = "wosa")
+#' mvspectrum2wcov(normalize_mvspectrum(S.U))
 #' 
 
-normalize_mvspectrum <- function(mvspectrum.output, Sigma.X = NULL) {
-  num.series <- dim(mvspectrum.output)[2]
-  if (is.null(num.series)) {
+normalize_mvspectrum <- function(mvspectrum.output) {
+  
+  if (is.null(dim(mvspectrum.output))) {
     num.series <- 1
+  } else {
+    num.series <- ncol(mvspectrum.output)  
   }
   
+  #if (!is.null(Sigma.X)) {
+  #  stopifnot(is.matrix(Sigma.X),
+  #            ncol(Sigma.X) == nrow(Sigma.X)) # square
+  #  
+  #  if (ncol(Sigma.X) != num.series) {
+  #    stop("Covariance matrix 'Sigma' must have dimension ", 
+  #         num.series, "x", num.series, 
+  #         " (since mvspectrum has", num.series, "time series).")
+  #  }
+  # }
+  
   if (num.series == 1) {
-    f3D <- mvspectrum.output/mean(mvspectrum.output)
+    # just one dimensional series
+    f3D <- mvspectrum.output / sum(mvspectrum.output)
+    num.series <- 1
   } else {
-    spectra.sum.inv <- solve(apply(mvspectrum.output, 2:3, mean))
-    if (!is.null(Sigma.X)) {
-      spectra.sum.inv <- spectra.sum.inv %*% Sigma.X
-    }
+    spectra.sum <- apply(mvspectrum.output, 2:3, sum)
+    diag.normalize <- matrix(1, ncol = num.series, nrow = num.series)
+    diag(diag.normalize) <- diag(spectra.sum)
     f3D <- array(t(apply(mvspectrum.output, 1, 
-                         function(x) as.matrix(spectra.sum.inv %*% 
-                                                 x, ncol = num.series))), 
+                         function(x) x / diag.normalize)),
                  dim(mvspectrum.output))
+    
+    # divide by number of frequencies so that the sum over all frequencies
+    # then becomes equal to the off-diagonal
+    spectra.mean <- apply(f3D, 2:3, mean)
+    # only subtract the real part; the imaginary parts cancel each other out
+    # since it's hermitian
+    off.diag <- spectra.mean - diag(diag(spectra.mean))
+    f3D <- array(t(apply(f3D, 1, 
+                         function(x) x - Re(off.diag))),
+                 dim(mvspectrum.output))
+    
+  #  if (!is.null(Sigma.X)) {
+  #    Sigma.X.norm <- Sigma.X / dim(f3D)[1]
+  #    f3D <- array(t(apply(mvspectrum.output, 1, 
+  #                         function(x) x * Sigma.X.norm)),
+  #                 dim(mvspectrum.output))
+  #  }
   }
-  invisible(f3D / 2)
+  # divide by 2 since we only consider positive frequencies here 
+  # (and it is symmetric around 0)
+  return(f3D / 2)
 } 
+
+
+#' @rdname mvspectrum
+#' @export
+#' @description
+#' \code{check_mvspectrum_normalized} checks if the spectrum is normalized 
+#' (see \code{\link{normalize_mvspectrum}} for the requirements).
+#' @inheritParams common-arguments
+#' @return
+#' \code{check_mvspectrum_normalized} throws an error if spectrum is not
+#' normalized correctly.
+#' 
+check_mvspectrum_normalized <- function(f.U) {
+  
+  if (is.null(dim(f.U))) {
+    num.series <- 1
+    sum.of.spectrum <- as.matrix(sum(f.U))
+  } else {
+    num.series <- dim(f.U)[2]
+    sum.of.spectrum <- apply(f.U, 2:3, sum)
+  }
+
+  off.diag <- sum.of.spectrum
+  diag(off.diag) <- 0
+  
+  equals <- list()
+  equals[["add-to-0.5"]] <- all.equal(target = diag(0.5, num.series),
+                                      current = Re(sum.of.spectrum),
+                                      check.names = FALSE,
+                                      check.attributes = FALSE)
+  equals[["off-diagonal-zero"]] <- all.equal(target = matrix(0, num.series, num.series),
+                                             current = Re(off.diag),
+                                             check.names = FALSE,
+                                             check.attributes = FALSE)
+  equals[["Hermitian"]] <- all.equal(target = off.diag,
+                                     current = Conj(t(off.diag)),
+                                     check.names = FALSE,
+                                     check.attributes = FALSE)
+  
+  errors <- c("add-to-0.5" = paste("A _normalized_ spectrum must add up to",
+                                        "0.5 times identity matrix."),
+              "off-diagonal-zero" = paste("Off diagonals must have zero reals."),
+              "Hermitian" = paste("The normalized spectrum must be Hermitian."))
+  
+  ind.errors <- !sapply(equals, isTRUE)
+  
+  if (any(ind.errors) > 0) {
+    for (ii in seq_along(ind.errors)) {
+      if (ind.errors[ii]) {
+        cat(names(equals)[ii], ": ", equals[[ii]], "\n", sep = "")
+      }
+    }
+    stop("Spectral density must be normalized:\n \t ", 
+         paste(errors[ind.errors], collapse = "\n \t ")) 
+  }
+}
+
+
+#' @rdname mvspectrum
+#' @export
+#' @description
+#' \code{mvpgram} computes the multivariate periodogram estimate using
+#' bare-bone multivariate fft (\code{\link[stats]{mvfft}}). Please use
+#' \code{mvspectrum(..., method = 'pgram')} instead of \code{mvpgram} directly.
+#' 
+#' This function is merely included to have one method that does not
+#' require the \pkg{astsa} nor the \pkg{sapa} R packages.  However, 
+#' it is strongly encouraged to install either one of them to get (much)
+#' better estimates.  See Details.
+#' 
+#' @details
+#' \code{mvpgram} has no options for improving spectrum estimation whatsoever.
+#' It thus yields very noisy (in fact, inconsistent) estimates of the 
+#' multivariate spectrum \eqn{f_{\mathbf{X}}(\lambda)}. 
+#' If you want to obtain better estimates then please use other \code{method}s in
+#' \code{\link{mvspectrum}} (this is highly recommended to obtain more 
+#' reasonable/stable estimates).
+
+mvpgram <- function(series) {
+  if (is.null(dim(series))) {
+    num.obs <- length(series)
+    num.series <- 1
+  } else {
+    num.obs <- nrow(series)
+    num.series <- ncol(series)
+  }
+  
+  num.freqs <- floor(num.obs / 2)
+  if (num.series > 1) {
+    series.fft <- mvfft(series)
+  } else {
+    series.fft <- as.matrix(fft(series), ncol = 1)
+  }
+  # Periodogram as in spec.pgram
+  pgram.x <- array(NA, dim = c(num.obs, num.series, num.series))
+  
+  for (ii in seq_len(num.series)) {
+    for (jj in seq_len(num.series)) {
+      pgram.x[, ii, jj] <- series.fft[, ii] * Conj(series.fft[, jj]) / num.obs
+    }
+  }
+  # remove 0 frequency and only take positive frequencies
+  pgram.x <- pgram.x[1 + seq_len(num.freqs),,]
+  if (num.series == 1) {
+    pgram.x <- Re(pgram.x)
+  }
+  return(pgram.x)
+}

@@ -1,46 +1,51 @@
 #' @title ForeCA EM auxiliary functions
 #' @name foreca.EM-aux
-#' @aliases foreca.EM.E_step foreca.EM.M_step foreca.EM.h
 #' @description 
-#' The EM-like algorithm relies on several auxiliary functions:
+#' \code{foreca.EM.one_weightvector} relies on several auxiliary functions:
 #' 
 NULL
 
 #' @rdname foreca.EM-aux
 #' @description
 #' \code{foreca.EM.E_step} computes the spectral density of 
-#' \eqn{y_t=\mathbf{w}' \mathbf{X}_t} given the weightvector \eqn{\mathbf{w}}.
-#' @keywords manip
-#' @param f.U an object of class \code{"mvspectrum"} with 
-#' \code{normalized = TRUE}
-#' @param weightvector a weight vector for \eqn{y_t=\mathbf{w}' \mathbf{X}_t}. 
-#' Must have unit norm in \eqn{L^2}. 
+#' \eqn{y_t=\mathbf{U}_t \mathbf{w}} given the weightvector \eqn{\mathbf{w}} 
+#' and the normalized spectrum estimate \eqn{f_{\mathbf{U}}}.
+#' A wrapper around \code{\link{spectrum_of_linear_combination}}.
+#' @keywords manip math
+#' 
+#' @inheritParams common-arguments
+#' @param weightvector numeric; weights \eqn{\mathbf{w}} for 
+#' \eqn{y_t = \mathbf{U}_t \mathbf{w}}. Must have unit norm in \eqn{\ell^2}. 
 #' @export
 #' @return
-#' \code{foreca.EM.E_step} returns a vector containing the normalized spectral 
-#' density (normalized such that its \code{mean} equals \eqn{0.5} - since 
-#' \code{f.U} only contains positive frequencies and is symmetric).
+#' \code{foreca.EM.E_step} returns the normalized univariate spectral 
+#' density (normalized such that its \code{sum} equals \eqn{0.5}).
 #' @examples
-#' 
 #' XX <- diff(log(EuStockMarkets)) * 100
-#' ff <- mvspectrum(XX, 'wosa', normalize = TRUE)
+#' UU <- whiten(XX)$U
+#' ff <- mvspectrum(UU, 'wosa', normalize = TRUE)
 #' 
-#' ww0 <- matrix(rnorm(ncol(XX)))
-#' ww0 <- ww0 / norm(ww0, 'F')
+#' ww0 <- initialize_weightvector(num.series = ncol(XX), method = 'rnorm')
 #' 
 #' f.ww0 <- foreca.EM.E_step(ff, ww0)
-#' 
+#' plot(f.ww0, type = "l")
 
 foreca.EM.E_step <- function(f.U, weightvector) {
   
-  stopifnot(round(base::norm(as.matrix(weightvector), "F"), 6) == 1)
+  stopifnot(!any(is.na(weightvector)),
+            isTRUE(all.equal(target = 1, 
+                             current = base::norm(weightvector, "2"))),
+            length(dim(f.U)) == 3,
+            dim(f.U)[2] == dim(f.U)[3], # square
+            dim(f.U)[2] == length(weightvector))  # weightvector has the right dimension
   
-  spec.dens.est <- Re(apply(f.U, 1, quadratic_form, vec = weightvector))
-  spec.dens.est[spec.dens.est < 0] <- 1 / length(spec.dens.est)^2
+  check_mvspectrum_normalized(f.U)
   
-  return(normalize_mvspectrum(spec.dens.est))
+  spec.dens.est <- spectrum_of_linear_combination(f.U, weightvector)
+  check_mvspectrum_normalized(spec.dens.est)  # is also a test already
+  
+  return(spec.dens.est)
 } 
-
 
 #' @rdname foreca.EM-aux
 #' @description
@@ -49,149 +54,149 @@ foreca.EM.E_step <- function(f.U, weightvector) {
 #' covariance matrix, where the weights equal the negative logarithm of the 
 #' spectral density at the current \eqn{\widehat{\mathbf{w}}_i}.
 #' @keywords manip
-#' @param base logarithm base; if \code{NULL} it sets it automatically to \eqn{T}, 
-#' such that the resulting discrete entropy estimate is bounded above by \eqn{1} 
-#' (it is always bounded below by \eqn{0}).
-#' @param minimize logical; if \code{TRUE} it returns the eigenvector
+#' @inheritParams common-arguments
+#' @param minimize logical; if \code{TRUE} (default) it returns the eigenvector
 #' corresponding to the smallest eigenvalue; otherwise to the largest eigenvalue.
-#' @param Sigma.X optional; covariance matrix of \eqn{\mathbf{X}}
+#' @inheritParams common-arguments
 #' @export
 #' @return
 #' \code{foreca.EM.M_step} returns a list with three elements:
-#' \describe{
-#'    \item{\code{matrix}:}{is the weighted covariance matrix 
-#'          (positive semi-definite), where the weights are the negative 
-#'          log of the spectral density,}
-#'    \item{\code{vector}:}{minimizing (or maximizing if 
-#'          \code{minimize = FALSE}) eigenvector of \code{matrix},}
-#'    \item{\code{value}:}{corresponding eigenvalue.}
-#' }
+#' \itemize{
+#'    \item \code{matrix}: weighted covariance matrix, where the weights are 
+#'          the negative log of the spectral density.  If density is estimated 
+#'          by discrete probabilities, 
+#'          then this \code{matrix} is positive semi-definite, since 
+#'          \eqn{-\log(p) \geq 0} for \eqn{p \in [0, 1]}. 
+#'          See \code{\link{weightvector2entropy_wcov}}.
+#'    \item \code{vector}: minimizing (or maximizing if 
+#'          \code{minimize = FALSE}) eigenvector of \code{matrix},
+#'    \item \code{value}: corresponding eigenvalue.
+#'    }
 #' @examples
 #' 
-#' onestep <- foreca.EM.M_step(ff, f.ww0)
-#' image(onestep$matrix)
+#' one.step <- foreca.EM.M_step(ff, f.ww0, 
+#'                              entropy.control = list(prior.weight = 0.1))
+#' image(one.step$matrix)
 #' \dontrun{
-#' require(LICORS)
-#' # if you have 'LICORS' package installed, better use this:
-#' image2(onestep$matrix)
+#' requireNamespace(LICORS)
+#' # if you have the 'LICORS' package use
+#' LICORS::image2(one.step$matrix)
 #' }
-#' ww1 <- onestep$vector
+#' ww1 <- one.step$vector
 #' f.ww1 <- foreca.EM.E_step(ff, ww1)
 #' 
 #' layout(matrix(1:2, ncol = 2))
-#' #par(mar = c(4, 4, 1, 1), mfcol= c(1,2))
 #' matplot(seq(0, pi, length = length(f.ww0)), cbind(f.ww0, f.ww1), 
 #'         type = "l", lwd =2, xlab = "omega_j", ylab = "f(omega_j)")
 #' plot(f.ww0, f.ww1, pch = ".", cex = 3, xlab = "iteration 0", 
 #'      ylab = "iteration 1", main = "Spectral density")
-#' abline(0, 1, col = 'blue', lty = 2)
+#' abline(0, 1, col = 'blue', lty = 2, lwd = 2)
 #' 
-#' 
+#' Omega(mvspectrum.output = f.ww0) # start
+#' Omega(mvspectrum.output = f.ww1) # improved after one iteration
 
-foreca.EM.M_step <- function(f.U, f.current, base = NULL, minimize = TRUE, 
-                             Sigma.X = NULL) {
+foreca.EM.M_step <- function(f.U, f.current, minimize = TRUE,
+                             entropy.control = list()) {
+  stopifnot(all(f.current >= 0),
+            is.logical(minimize))
   
-  TT <- length(f.current)
-  num.series <- ncol(f.U)
+  num.freqs <- length(f.current)
   
-  if (round(mean(f.current), 6) != 0.5) {
-    stop(paste("The spectral density in 'f.current' is not correctly normalized.",
-               "\n Its mean must equal 0.5 (since it's symmetric around 0 only",
-               "the spectral density for omega > 0 is used)."))
-  }
+  check_mvspectrum_normalized(f.U)
+  check_mvspectrum_normalized(f.current)
   
-  if (!identical(round(mvspectrum2wcov(f.U), 6), diag(1, num.series))) {
-    stop(paste("The multivariate spectrum estimate 'f.U' must be properly",
-               " normalized.\n It must average (mean) to a diagonal matrix ",
-               " with 0.5 in the diagonal."))
-  }
-  if (is.null(base)) {
-    base <- 2 * TT
-  }
-  SS <- mvspectrum2wcov(f.U/TT, -log(f.current/TT, base = base))
-  
-  if (!is.null(Sigma.X)) {
-    SS <- solve(Sigma.X %*% SS)
-  }
-  
-  EE <- eigen(SS, symmetric = TRUE)
-  sel <- ifelse(minimize, 
-                which.min(EE$values), max(EE$values))
+  entropy.control <- complete_entropy_control(entropy.control,
+                                              num.outcomes = 2 * num.freqs)
+  integrated.spectrum.entropy <- 
+    weightvector2entropy_wcov(NULL, 
+                                               f.U = f.U,
+                                               f.current = f.current,
+                                               entropy.control = entropy.control)
+  EE <- eigen(integrated.spectrum.entropy, symmetric = TRUE)
+  sel <- ifelse(minimize, which.min(EE$values), which.max(EE$values))
   
   weightvector <- EE$vector[, sel]
-  value <- EE$values[sel]
   
-  weightvector <- weightvector / sign(weightvector[which.max(abs(weightvector))])
-  weightvector <- weightvector / base::norm(as.matrix(weightvector), "F")
-  
-  out <- list(matrix = SS, vector = weightvector, value = value)
+  # make first entry always positive (scale vector always this way)
+  # for consistent results among re-runs
+  weightvector <- weightvector / sign(weightvector[1])
+  out <- list(matrix = integrated.spectrum.entropy, 
+              vector = weightvector, 
+              value = EE$values[sel])
   return(out)
 } 
 
 #' @rdname foreca.EM-aux
 #' @description
-#' \code{foreca.EM.h} evaluates the entropy of the spectral density as a function
-#' of \eqn{\mathbf{w}}. This is the objective funcion that should be minimized.
+#' \code{foreca.EM.h} evaluates (an upper bound of) the entropy of the spectral density as a function
+#' of \eqn{\mathbf{w}_i} (or \eqn{\mathbf{w}_{i+1}}). This is the objective funcion that should be 
+#' \code{minimize}d.
 #' 
 #' @keywords manip
 #' @param weightvector.new weightvector \eqn{\widehat{\mathbf{w}}_{i+1}} of the new 
-#' iteration (i+1)
-#' @param f.current spectral density of \eqn{y_t=\mathbf{w}' \mathbf{X}_t} for 
-#' the current estimate \eqn{\widehat{\mathbf{w}}_i} (required for 
+#' iteration (i+1).
+#' @param f.current numeric; spectral density estimate of 
+#' \eqn{y_t=\mathbf{U}_t \mathbf{w}} for the current estimate 
+#' \eqn{\widehat{\mathbf{w}}_i} (required for 
 #' \code{foreca.EM.M_step}; optional for \code{foreca.EM.h}).
 #' @param weightvector.current weightvector \eqn{\widehat{\mathbf{w}}_{i}} of the 
-#' current iteration (i)
+#' current iteration (i).
+#' @param return.negative logical; if \code{TRUE} it returns the negative 
+#' spectral entropy. This is useful when maximizing forecastibility which is 
+#' equivalent (up to an additive constant) to maximizing negative entropy. 
+#' Default: \code{FALSE}.
 #' @return 
-#' \code{foreca.EM.h} returns (see References for details):
+#' \code{foreca.EM.h} returns non-negative real value (see References for details):
 #' \itemize{
-#'    \item the negative entropy (non-negative real) if 
-#'          \code{weightvector.new = weightvector.current}
-#'    \item an upper bound of that entropy for \code{weightvector.new} if 
-#'          \code{weightvector.new != weightvector.current}
+#'    \item entropy, if \code{weightvector.new = weightvector.current},
+#'    \item an upper bound of that entropy for \code{weightvector.new},
+#'          otherwise.
 #' }
+#' @seealso
+#' \code{\link{weightvector2entropy_wcov}}
 #' @export
 #' @examples
 #' 
 #' foreca.EM.h(ww0, ff)       # iteration 0
 #' foreca.EM.h(ww1, ff, ww0)  # min eigenvalue inequality
 #' foreca.EM.h(ww1, ff)       # KL divergence inequality
-#' onestep$value
+#' one.step$value
 #' 
-#' Omega(spectrum.estimate = f.ww0) / 100 + foreca.EM.h(ww0, ff)
-#' Omega(spectrum.estimate = f.ww1) / 100 + foreca.EM.h(ww1, ff)
+#' # by definition of Omega, they should equal 1 (modulo rounding errors)
+#' Omega(mvspectrum.output = f.ww0) / 100 + foreca.EM.h(ww0, ff)
+#' Omega(mvspectrum.output = f.ww1) / 100 + foreca.EM.h(ww1, ff)
 #' 
 
 foreca.EM.h <- function(weightvector.new, f.U, 
                         weightvector.current = weightvector.new, 
-                        f.current = NULL, base = NULL) {
+                        f.current = NULL,
+                        entropy.control = list(),
+                        return.negative = FALSE) {
+  
   # short as quadratic_form(apply(f.U*log(weightvector.current), 2:3, sum),
   # weightvector.new)
+  stopifnot(length(weightvector.current) == length(weightvector.new),
+            all(f.current >= 0) || is.null(f.current))
+  
+  check_mvspectrum_normalized(f.U)
   if (is.null(f.current)) {
     f.current <- foreca.EM.E_step(f.U, weightvector.current)
+  } else {
+    check_mvspectrum_normalized(f.current)
   }
-  if (round(mean(f.current), 6) != 0.5) {
-    stop(paste("The spectral density in 'f.current' is not correctly normalized.",
-               "\n Its mean must equal 0.5 (since it's symmetric around 0 only",
-               "spectral density for omega > 0 is required."))
-  }
+
+  num.series <- length(weightvector.new)  
+  num.freqs <- length(f.current)
+
+  entropy.control <- complete_entropy_control(entropy.control,
+                                              num.outcomes = 2 * num.freqs)
+  integrated.spectrum.entropy <- 
+    weightvector2entropy_wcov(NULL, 
+                                               f.U = f.U,
+                                               f.current = f.current,
+                                               entropy.control = 
+                                                 entropy.control)
   
-  num.series <- length(weightvector.new)
-  
-  if (!identical(round(mvspectrum2wcov(f.U), 6), diag(1, num.series))) {
-    stop(paste("The multivariate spectrum estimate 'f.U' must be properly ",
-               "normalized.\n It must average (mean) to a diagonal matrix ",
-               "with 0.5 in the diagonal."))
-  }
-  
-  TT <- length(f.current)
-  
-  if (is.null(base)) {
-    base <- 2 * length(f.current)
-  }
-  
-  w.cov.matrix <- 
-    mvspectrum2wcov(f.U/TT, weights = -log(f.current/TT, base = base))
-  
-  return(quadratic_form(w.cov.matrix, weightvector.new))
+  return(quadratic_form(integrated.spectrum.entropy, weightvector.new))
 } 
 

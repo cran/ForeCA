@@ -1,108 +1,133 @@
-#' @title Initialize the weightvector for iterative ForeCA algorithms
+#' @title Initialize weightvector for iterative ForeCA algorithms
 #' @description
-#' \code{initialize_weightvector} returns a unit norm (in \eqn{L^2})
-#' vector \eqn{\mathbf{w}_0 \in R^k} that can be used as the initial starting
-#' point for any iterative ForeCA algorithm, e.g., the EM-like algorithm in 
-#' \code{\link{foreca.EM.opt_weightvector}}. Several 
-#' quickly computable heuristics to get a good starting value are available. 
-#' See \code{method} argument and Details below. 
+#' \code{initialize_weightvector} returns a unit norm (in \eqn{\ell^2})
+#' vector \eqn{\mathbf{w}_0 \in R^K} that can be used as the starting
+#' point for any iterative ForeCA algorithm, e.g., 
+#' \code{\link{foreca.EM.one_weightvector}}. Several 
+#' quickly computable heuristics are available via the \code{method} argument. 
 #' 
 #' @keywords manip
-#' @param f.U an object of class \code{"mvspectrum"} with 
-#' \code{normalized = TRUE}
-#' @param U uncorrelated multivariate time series of dimension \eqn{T \times K}.
-#' @param method string indicating the method to estimate the initial 
-#' weightvector; default \code{"SFA"}; see Details.
-#' @param seed seed to use for random initialization; if \code{NULL}, it sets
-#' a random seed (and it will be returned for reproducibility).
-#' @param lag integer; lag for the difference operator; default \code{lag=1}.
+#' @inheritParams common-arguments
+#' @inheritParams sfa
+#' @param num.series positive integer; number of time series \eqn{K} (determines the length 
+#' of the weightvector). If \code{num.series = 1} it simply returns
+#' a 1 \eqn{\times} 1 array equal to \code{1}.
+#' @param method string; which heuristics should be used to generate a good starting \eqn{\mathbf{w}_0}?
+#' Default: \code{"rnorm"}; see Details.
+#' @param seed non-negative integer; seed for random initialization which will be 
+#' returned for reproducibility. By default it sets a random seed.
 #' @details
 #' The \code{method} argument specifies the heuristics that is used to get a good
-#' starting vector \eqn{\mathbf{w}_0}. This vector has length \eqn{k} and unit norm 
-#' in \eqn{L^2}: 
+#' starting vector \eqn{\mathbf{w}_0}:
 #' 
-#' \describe{
-#'  \item{max}{uses the vector with all \eqn{0}s, but a \eqn{1} at the position
+#' \itemize{
+#'  \item{\code{"max"}}{ vector with all \eqn{0}s, but a \eqn{1} at the position
 #'  of the maximum forecastable series in \code{U}.}
-#'  \item{SFA.slow}{uses the first eigenvector of SFA (slowest signal).}
-#'  \item{SFA.fast}{uses the last eigenvector of SFA (fastest signal).}
-#'  \item{SFA}{checks both slow and fast, and chooses the one with higher
-#'             forecastability.}
-#'  \item{cauchy}{random starts using \code{rcauchy(k)}}
-#'  \item{unif}{random starts using \code{runif(k, -1, 1)}}
-#'  \item{norm}{random starts using \code{rnorm(k, 0, 1)}}
-#' }
+#'  \item{\code{"rcauchy"}}{ random start using \code{rcauchy(k)}.}
+#'  \item{\code{"rnorm"}}{ random start using \code{rnorm(k, 0, 1)}.}
+#'  \item{\code{"runif"}}{ random start using \code{runif(k, -1, 1)}.}
+#'  \item{\code{"SFA.fast"}}{ last eigenvector of SFA (fastest signal).}
+#'  \item{\code{"SFA.slow"}}{ first eigenvector of SFA (slowest signal).}
+#'  \item{\code{"SFA"}}{ checks both slow and fast, and chooses the one with higher
+#'             forecastability as computed by \code{\link{Omega}}.}
+#' } 
 #' 
-#' Slow Feature Analysis (SFA) finds \emph{slow} signals (see References below),
-#' and can be quickly (and analytically)  computed solving a generalized eigen-value
-#' problem.  For ForeCA it is important to know that SFA is equivalent to
-#' finding the signal with largest lag \eqn{1} autocorrelation.  This is not
-#' necessarily the most forecastable, but a good start.
+#' Each vector has length K and is automatically normalized to have unit norm 
+#' in \eqn{\ell^2}.
 #' 
-#' The disadvantage of SFA for forecasting is that e.g., white noise (WN) 
-#' is ranked higher than an AR(1) with negative autocorrelation coefficient 
-#' \eqn{\rho_1 < 0}.  While it is true that WN is slower, it is not more 
-#' forecastable.  Thus we are also interested in the fastest signal, i.e.,
-#' the last eigenvector. The so obtained fastest signal corresponds to minimizing
-#' the lag 1 auto-correlation (possibly \eqn{\rho_1 < 0}). 
+#' For the \code{'SFA*'} methods see \code{\link{sfa}}. 
+#' Note that maximizing (or minimizing) the lag \eqn{1} auto-correlation does 
+#' not necessarily yield the most forecastable signal, but it's a good start.
 #' @return 
-#' A vector of length \eqn{k} with unit norm (in \eqn{L^2}).
-#' @references
-#' Laurenz Wiskott and Terrence J. Sejnowski (2002). 
-#' \dQuote{Slow Feature Analysis: Unsupervised Learning of Invariances}, 
-#' Neural Computation 14:4, 715-770.
+#' numeric; a vector of length \eqn{K} with unit norm in \eqn{\ell^2}.
+#' @examples
+#' XX <- diff(log(EuStockMarkets))
+#' \dontrun{
+#' initialize_weightvector(U = XX, method = "SFA")
+#' }
+#' initialize_weightvector(num.series = ncol(XX), method = "rnorm")
 #' @export
-
-initialize_weightvector <- 
-  function(U, f.U, method = c("SFA", "SFA.slow", "SFA.fast", 
-                              "cauchy", "unif", "norm", "max"),
-           seed = NULL, lag = 1) {
+#' 
+initialize_weightvector <- function(U = NULL, f.U = NULL, 
+                                    num.series = ncol(U),
+                                    method = c("rnorm", "max", "SFA", "SFA.slow", "SFA.fast", 
+                                               "rcauchy", "runif"), 
+                                    seed = sample(1e6, 1), ...) {
+        
+    stopifnot(is.null(U) || is.array(U) || is.ts(U) || is.matrix(U),
+              is.null(f.U) || is.array(f.U),
+              num.series >= 1,
+              is.character(method))
+    
+    if (!is.null(U)) {
+      # if U is provided it must be whitened
+      check_whitened(U)
+    }
     
     method <- match.arg(method)
-    UU <- U
-    num.series <- ncol(UU)
     
-    if (!identical(round(cov(UU), 3), diag(1, num.series))) {
-      stop("Time series must be uncorrelated and have unit variance.")
+    if (is.null(num.series) && is.null(f.U)) {
+      stop("You must provide either 'num.series', 'series', or 'f.U'.")
     }
     
-    if (is.null(seed)) {
-      seed <- sample.int(1e+6, 1)
+    if (method %in% c("SFA", "SFA.slow", "SFA.fast") && is.null(U)) {
+      stop("For SFA-type methods you must provide data via the 'U' argument.")
+    } 
+    
+    if (is.null(num.series)) {
+      if (is.null(f.U)) {
+        num.series <- ncol(U)
+      } else if (is.null(U)) {
+        num.series <- dim(f.U)[2]
+      } else {
+        stop("Something went wrong in initialize_weightvector().")
+      }
     }
     
-    if (method == "cauchy") {
+    if (num.series == 1) {
+      return(cbind(1))
+    }
+
+    set.seed(seed)
+    if (method == "rcauchy") {
       ww0 <- rcauchy(num.series)
-    } else if (method == "unif") {
+    } else if (method == "runif") {
       ww0 <- runif(num.series, -1, 1)
-    } else if (method == "norm") {
+    } else if (method == "rnorm") {
       ww0 <- rnorm(num.series)
     } else if (method == "max") {
       ww0 <- rep(0, num.series)
-      Omega.tmp <- apply(2 * Re(apply(f.U, 1, diag)), 1, spectral_entropy, 
-                         threshold = 0)
+      Omega.tmp <- apply(get_spectrum_from_mvspectrum(f.U), 2, 
+                         function(x) Omega(mvspectrum.output = x))
       ww0[which.max(Omega.tmp)] <- 1
     } else if (any(method == c("SFA", "SFA.slow", "SFA.fast"))) {
-      Sigma.Delta.U <- cov(diff(UU, lag = lag))
-      EE <- eigen(Sigma.Delta.U)
-      ww.slow <- EE$vectors[, num.series]
-      ww.fast <- EE$vectors[, 1]
+      sfa.est <- ForeCA::sfa(U, ...)
+      ww.slow <- sfa.est$loadings[, 1]
+      ww.fast <- sfa.est$loadings[, num.series]
       
-      ww0 <- ww.slow
       if (method == "SFA.slow") {
-        # done
+        ww0 <- ww.slow
       } else if (method == "SFA.fast") {
         ww0 <- ww.fast
       } else if (method == "SFA") {
-        omega.slow <- Omega(spectrum.estimate = foreca.EM.E_step(f.U, ww.slow))
-        omega.fast <- Omega(spectrum.estimate = foreca.EM.E_step(f.U, ww.fast))
+        stopifnot(!is.null(f.U))
         
+        omega.slow <- Omega(mvspectrum.output = foreca.EM.E_step(f.U, ww.slow))
+        omega.fast <- Omega(mvspectrum.output = foreca.EM.E_step(f.U, ww.fast))
         if (omega.fast > omega.slow) {
           ww0 <- ww.fast
+        } else {
+          ww0 <- ww.slow
         }
       }
       
     }
-    ww0 <- ww0 / base::norm(ww0, "2")
-    
+    if (ww0[1] != 0) {
+      # make the first entry always positive (if it's not zero)
+      ww0 <- ww0 * sign(ww0[1])
+    }
+    # normalize
+    ww0 <- rbind(ww0 / base::norm(ww0, "2"))
+    rownames(ww0) <- NULL
     return(ww0)
   } 

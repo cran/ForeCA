@@ -1,5 +1,85 @@
 # Update history of ForeCA
 
+## v0.2.0 (Jan 2015)
+A bug-fix release and more modular, less repetitive coding under the hood; results in improved performance of the main algorithms.
+
+Main notable change for users: to specify spectrum and entropy estimation use `spectrum.control` and `entropy.control`.  Otherwise no relevant visible user-interface changes.
+
+Please also review the manual; it has been _very_ thoroughly reviewed.
+
+### New
+
+- a couple of new functions for more modular code and easier testing:
+    * `sqrt_matrix`
+    * `complete_entropy_control`
+    * `complete_spectrum_control`
+    * `complete_algorithm_control`
+    * `check_whitened`
+    * `check_mvspectrum_normalized`
+    * `weightvector2entropy_wcov`
+    * `mvpgram`
+- a `print.foreca` S3 method
+- `Omega` and several `foreca.*` functions changed arguments:
+    * `spectrum.conrol = list(...)` is the new way to specify `spectrum.method`, `smoothing`.
+    * `entropy.control = list(...)` is the new way to specify `entropy.method`, `threshold`,
+      `prior.weight`.
+- made `"mvfft"` default for spectrum estimation, using `mvfft` in R. This avoids the requirement to have **sapa** or **astsa** installed.
+- general `foreca.one_weightvector` and `foreca.multiple_weightvectors` wrappers for more modular and less repititve coding.
+- **By default** entropy is smoothed by a mixture with a uniform prior distribution 
+  with `prior.weight = 1e-03` in order to avoid `log(0)` throughout the 
+  computations. If you don't want this, you have to explicitly specify `prior.weight = 0` in the `entropy.control` argument.
+- formally added tests using the **testthat** package
+- added list of all available `spectrum.method`s for estimation of the spectrum/spectral density
+  in the `complete_spectrum_control` help page.
+- all `foreca.*()` functions only accept whitened time series `U`, not `series`.  Only
+  `foreca()` directly accepts the original (unwhitened) `series`.  Use
+  `U <- whiten(series)$U` to obtain the whitened series.
+
+#### Removed
+
+- `foreca.EM`: use `foreca(..., algorithm.type = "EM")` directly.
+- dependency on R packages: 
+    - **R.utils**: `R.utils::wrap` got replaced by `base::aperm`.
+    - **sapa** and **astsa**: in its basic form the **ForeCA** package now
+      runs in base R! However, it is still highly recommended to use either
+      the **sapa** or **astsa** package (users can use their algorihms via the
+      `method` argument in several functions.)
+- `spectral_entropy` now only works with a spectral density input `f.U`;
+  not with `series` or `spectrum.estimate`.
+
+### Bug fixes
+
+- `whiten()` (thanks to Bjoern Weghenkel for pointing this out):
+    * forgot to center U; if data was centered to start with, then this didn't affect results.
+    * fixed dewhitening and whitening matrices
+- `initialize_weightvector` used the minimum Omega vector, not maximum, for `method = "max"`.
+
+### Minor changes/improvements
+
+- thourough revision of documentation:
+    * better explanations
+    * fixed typos or code / documentation mismatch
+    * more concise (hopefully)
+- `mvspectrum`: the smooth univariate spectrum estimate (`smoothing = TRUE`) uses 
+   an exponential distribution with a logarithmic link function in the `mgcv::gam` 
+   function.
+- `discrete_entropy`: 
+    * The uniform distribution is now added using a mixture type model,
+      rather than an absolute addition to original distribution and then renormalizing.
+      Thus the `prior.weight` is now between 0 and 1, not just greater than 0.
+    * Only `''MLE''` is a valid `method` now.  If you want to use `''smoothed''`, then this
+      can be done just with the `prior.weight` argument.
+- lower and upper limit arguments for `continuous_entropy` changed from 
+  `a` and `b` to `lower` and `upper`.
+- `eigen()` calls got `symmetric = TRUE`.  About 3x faster.
+- The random methods in `initialize_weightvector` have the `r` prefix, i.e., `"rnorm"` 
+  instead of `"norm"`.  Same for `"cauchy"` and `"unif"`.
+- `foreca.EM.opt_weightvector` changed to `foreca.EM.one_weightvector`.
+- the trace plots of the weights are always smooth curves (and don't jump
+  betweeen  +/- 1 times the weightvector).
+
+* * *
+
 ## v0.1
 
 - changed underscore (`_`) in argument names to dot (`.`). E.g., `max_iter` to `max.iter`
@@ -8,7 +88,7 @@
   - removed unnecessary code (thanks `checkUsage()`)
 - cleaned up `NEWS` file and edited to conform to proper markdown format
 - changed `method` argument in `foreca()` to `algorithm.type`
-- moved the function to initialize a weightvector out from the `EM` class, to its own function (`initialize_weightvector()`)
+- moved function to initialize a weightvector from the `EM` class, to its own function (`initialize_weightvector()`)
 - replaced AR spectrum estimation to `"burg"` in `spec.ar()`
 - moved `tol`, `nstart`, and `max.iter` in `foreCA.EM()` into a `control` list (where `nstart` became `num.starts`)
 - improved display of `plot.foreca.EM.opt_weightvector`
