@@ -112,13 +112,21 @@ test_that("sqrt_matrix handles negative eigenvalues / complex values correctly",
 })
 
 context("sqrt_matrix auxiliary metrics (transformation/eigenvalues")
+sqrt.result <- sqrt_matrix(kPosDef, return.sqrt.only = FALSE, 
+                           symmetric = TRUE)
+
 test_that("sqrt_matrix returns a list with correct names", {
   # return more than just the inverse
-  sqrt.result <- sqrt_matrix(kPosDef, return.sqrt.only = FALSE, symmetric = TRUE)
   expect_true(inherits(sqrt.result, "list"))
   expect_equal(names(sqrt.result), c("values", "vectors", "sqrt", "sqrt.inverse"))
+})
+
+test_that("sqrt_matrix gives correct inverse for whitening", {
   # sqrt.inverse is actually the inverse to sqrt
   expect_equal(sqrt.result$sqrt %*%  sqrt.result$sqrt.inverse, 
+               diag(1, ncol(kPosDef)))
+  
+  expect_equal(kPosDef %*% sqrt.result$sqrt.inverse %*%  sqrt.result$sqrt.inverse,        
                diag(1, ncol(kPosDef)))
 })
 

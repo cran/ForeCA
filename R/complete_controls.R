@@ -34,7 +34,7 @@ NULL
 complete_algorithm_control <- function(algorithm.control = 
                                          list(max.iter = 50,
                                               num.starts = 10,
-                                              tol = 1e-3,
+                                              tol = 1e-6,
                                               type = 'EM')) {
   stopifnot(inherits(algorithm.control, "list"))
   
@@ -48,7 +48,7 @@ complete_algorithm_control <- function(algorithm.control =
   }
             
   if (is.null(algorithm.control$tol)) {
-    algorithm.control$tol <- 1e-3
+    algorithm.control$tol <- 1e-6
   } 
   stopifnot(is.numeric(algorithm.control$tol),
             length(algorithm.control$tol) == 1,
@@ -169,8 +169,8 @@ complete_entropy_control <- function(entropy.control =
 #' \item{"ar"}{ autoregressive spectrum fit via \code{\link[stats]{spec.ar}}; 
 #' only for univariate time series.}
 #' \item{"direct"}{ raw periodogram using \code{\link[sapa]{SDF}}.}
-#' \item{"lag window"}{ average over a neighborhood of lags in the periodogram 
-#' estimator using \code{\link[sapa]{SDF}}.}
+#  \item{"lag window"}{ average over a neighborhood of lags in the periodogram 
+#  estimator using \code{\link[sapa]{SDF}}.}
 #' \item{"multitaper"}{ tapering the periodogram using \code{\link[sapa]{SDF}}.}
 #' \item{"mvspec"}{ smoothed estimate using \code{\link[astsa]{mvspec}}; many tuning parameters
 #' are available -- they can be passed as additional arguments (\code{...}) 
@@ -187,7 +187,7 @@ complete_entropy_control <- function(entropy.control =
 
 complete_spectrum_control <- function(spectrum.control = 
                                         list(kernel = NULL, 
-                                             method = c("wosa", "direct", "lag window", "multitaper", 
+                                             method = c("wosa", "direct", "multitaper", 
                                                         "mvspec", "ar", "pgram"),
                                              smoothing = FALSE)) {
   stopifnot(inherits(spectrum.control, "list"))
@@ -223,7 +223,7 @@ complete_spectrum_control <- function(spectrum.control =
   }
   stopifnot(is.character(spectrum.control$method),
             length(spectrum.control$method) == 1)
-  if (spectrum.control$method %in% c("wosa", "multitaper", "lag window", "direct")) {
+  if (spectrum.control$method %in% c("wosa", "multitaper", "direct")) {
     if (!requireNamespace("sapa", quietly = TRUE)) {
       stop("For method '", spectrum.control$method, "' you need the 'sapa' package.\n",
            "\t Please install it or user another method.")

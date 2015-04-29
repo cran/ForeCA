@@ -71,7 +71,7 @@ Omega <- function(series = NULL,
                   entropy.control = list(),
                   mvspectrum.output = NULL) {
 
-  stopifnot(!is.null(series) || !is.null(mvspectrum.output))
+  stopifnot(xor(is.null(series), is.null(mvspectrum.output)))
   
   if (is.null(mvspectrum.output)) {
     series <- as.matrix(series)
@@ -98,10 +98,11 @@ Omega <- function(series = NULL,
     attr(OMEGAs, "unit") <- "%"
     return(OMEGAs)
   } else {
-    h.spectral <- spectral_entropy(series, 
+    h.spectral <- spectral_entropy(series = series, 
                                    spectrum.control = spectrum.control,
                                    mvspectrum.output = mvspectrum.output, 
                                    entropy.control = entropy.control)
+    #print(h.spectral)
     OMEGA <- (1 - c(h.spectral)) * 100
     attr(OMEGA, "unit") <- "%"
     return(OMEGA)

@@ -1,3 +1,4 @@
+context("Testing quadratic_format()\n")
 
 nn <- 10
 kVec <- runif(nn)
@@ -20,6 +21,55 @@ test_that("Test_quadratic_form", {
   # for positive def matrix the quadratic form is positive
   expect_true(quadratic_form(kPosDefMat, kVec) > 0)
   # for eigenvalue it must hold that x' A x = lambda
-  expect_equal(quadratic_form(kPosDefMat, eigen.results$vector[,1]), eigen.results$value[1])
+  expect_equal(quadratic_form(kPosDefMat, eigen.results$vector[, 1]), 
+               eigen.results$value[1])
 })
 
+context("Testing fill_hermitian()\n")
+
+kRealMat <- matrix(seq_len(16), ncol = 4)
+kComplexMat <- kRealMat + 1i * 2 * kRealMat
+
+test_that("fill_hermitian only allows matrices with a real-valued diagonal", {
+  expect_error(fill_hermitian(matrix(1 + 1i)))
+  expect_error(fill_hermitian(kComplexMat))
+})
+
+diag(kComplexMat) <- seq_len(ncol(kComplexMat))
+
+test_that("fill_hermitian only allows NA in lower triangual matrices", {
+  expect_error(fill_hermitian(kRealMat))
+  expect_error(fill_hermitian(kComplexMat))
+  
+  kRealMat[lower.tri(kRealMat)] <- 0
+  expect_error(fill_hermitian(kRealMat))
+  
+  kComplexMat[lower.tri(kComplexMat)] <- NA
+  expect_true(inherits(fill_hermitian(kComplexMat), "matrix"))
+})
+
+kRealMat[lower.tri(kRealMat)] <- NA
+kComplexMat[lower.tri(kComplexMat)] <- NA
+
+test_that("fill_hermitian actually produces hermitian matrix", {
+  expect_error(fill_hermitian(1))
+  expect_equal(fill_hermitian(matrix(1)), matrix(1))
+  
+  filled.real <- fill_hermitian(kRealMat)
+  filled.complex <- fill_hermitian(kComplexMat)
+  
+  # upper triangual stays the same
+  expect_equal(filled.real[upper.tri(filled.real)],
+               kRealMat[upper.tri(kRealMat)])
+  expect_equal(filled.complex[upper.tri(filled.complex)],
+               kComplexMat[upper.tri(kComplexMat)])
+
+  # diagonal stays the same (not doubles)
+  expect_equal(diag(filled.real), diag(kRealMat))
+  expect_equal(diag(filled.complex), diag(kComplexMat))
+  
+  # it is actually Hermitian: A = Conj(A)'
+  expect_equal(filled.real, t(Conj(filled.real)))
+  expect_equal(filled.complex, t(Conj(filled.complex)))
+  
+})

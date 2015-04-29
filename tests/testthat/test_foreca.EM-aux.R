@@ -12,8 +12,7 @@ ww0 <- initialize_weightvector(num.series = ncol(UU), method = 'rnorm')
 yy.UU <- UU %*% t(ww0)
 yy.Series <- kSeries %*% t(ww0)
 
-kSpectrumMethods <- c("direct", "wosa", "multitaper", "lag window", "mvspec",
-                      "pgram")
+kSpectrumMethods <- c("direct", "wosa", "multitaper", "mvspec", "pgram")
 
 context("foreca.EM.E_step")
 for (mm in kSpectrumMethods) {
@@ -76,6 +75,22 @@ for (mm in kSpectrumMethods) {
   })
 }
 
+
+context("foreca.EM.E_and_M_step")
+for (mm in kSpectrumMethods) {
+  test.msg <- paste0("Test method ", mm, "\n")
+  spec.UU <- mvspectrum(UU, mm, normalize = TRUE)
+  spec.yy.0 <- foreca.EM.E_step(spec.UU, ww0)
+  
+  test_that("E_and_M_step wrapper is the same as E and M step separately", {
+    spec.UU.e.step <- foreca.EM.E_step(spec.UU, ww0)
+    spec.UU.m.step <- foreca.EM.M_step(spec.UU, spec.UU.e.step)
+
+    expect_equal(spec.UU.m.step$vector, 
+                 foreca.EM.E_and_M_step(ww0, spec.UU),
+                 info = test.msg)
+  })
+}
 
 context("foreca.EM.h")
 for (mm in kSpectrumMethods) {

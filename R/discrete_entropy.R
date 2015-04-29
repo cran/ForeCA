@@ -98,7 +98,6 @@ discrete_entropy <- function(probs, base = 2, method = c("MLE"),
   if (any(probs == 0)) {
     probs <- probs[probs != 0]
   }
-  
   stopifnot(all.equal(target = 1, current = sum(probs)))
   switch(method,
          MLE = {

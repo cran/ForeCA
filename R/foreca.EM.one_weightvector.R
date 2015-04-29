@@ -69,17 +69,15 @@ foreca.EM.one_weightvector <- function(U, f.U = NULL,
       f.U <- normalize_mvspectrum(f.U)
     }
   }
-  # stopifnot(isTRUE(all.equal(mvspectrum2wcov(f.U), diag(1, dim(f.U)[2]))))
-
   converged <- FALSE  
   wv.trace <- matrix(NA, ncol = num.series, 
                      nrow = algorithm.control$max.iter + 1)  # add one for last recording
   wv.trace[1, ] <- init.weightvector
   
   spec.ent.trace <- rep(NA, algorithm.control$max.iter + 1)
-  spec.ent.trace.direct <- spec.ent.trace 
+  spec.ent.trace.univ <- spec.ent.trace 
   Omega.trace <- spec.ent.trace
-  Omega.trace.direct <- Omega.trace
+  Omega.trace.univ <- Omega.trace
   
   warning.msg <- NULL
 
@@ -93,11 +91,8 @@ foreca.EM.one_weightvector <- function(U, f.U = NULL,
     } else {
       f.current <- foreca.EM.E_step(f.U = f.U,
                                     weightvector = ww.current)
-      #f.current.tmp <- mvspectrum(yy.current,
-      #                            method = spectrum.control$method,
-      #                            normalize = TRUE, smoothing = FALSE)
     }
-    spec.ent.trace.direct[iter] <- 
+    spec.ent.trace.univ[iter] <- 
       spectral_entropy(mvspectrum.output = f.current,
                        entropy.control = entropy.control)
     spec.ent.trace[iter] <- 
@@ -107,7 +102,7 @@ foreca.EM.one_weightvector <- function(U, f.U = NULL,
     
     Omega.trace[iter] <- Omega(mvspectrum.output = f.current,
                                entropy.control = entropy.control)
-    Omega.trace.direct[iter] <- Omega(series = yy.current,
+    Omega.trace.univ[iter] <- Omega(series = yy.current,
                                       entropy.control = entropy.control,
                                       spectrum.control = spectrum.control)
     if (converged) {
@@ -119,19 +114,19 @@ foreca.EM.one_weightvector <- function(U, f.U = NULL,
                                               entropy.control)$vector
     if (iter > 1) {
       # round to avoid numerical rounding errors
-      abs.change <- spec.ent.trace[iter] - spec.ent.trace[iter - 1]
+      abs.change <- spec.ent.trace[iter] - spec.ent.trace[iter - 1]  # this is <0
       if (abs.change > 0) {
         warning.msg <- paste0("Spectral entropy increased (!) in iteration ",
                               iter, " of foreca.EM.one_weightvector.\n ",
                               "If this is not the last iteration, please check results.")
         warning.iter <- iter
-      }
-      # decrease from previous iteration
-      # rel.change <- spec.ent.trace[iter] / spec.ent.trace[iter - 1] - 1
-
-      if (abs.change >= 0 && abs.change < algorithm.control$tol) {
-        # convergence stop
-        converged <- TRUE  # break in next iteration
+      } else {
+        # decrease from previous iteration
+        # rel.change <- spec.ent.trace[iter] / spec.ent.trace[iter - 1] - 1
+        if (abs(abs.change) < algorithm.control$tol) {
+          # convergence stop
+          converged <- TRUE  # break in next iteration
+        }
       }
     }
   }  # end of iter
@@ -141,12 +136,12 @@ foreca.EM.one_weightvector <- function(U, f.U = NULL,
   }
   wv.trace <- na.omit(wv.trace)
   spec.ent.trace <- na.omit(spec.ent.trace)
-  spec.ent.trace.direct <- na.omit(spec.ent.trace.direct)
-  Omega.trace.direct <- na.omit(Omega.trace.direct)
+  spec.ent.trace.univ <- na.omit(spec.ent.trace.univ)
+  Omega.trace.univ <- na.omit(Omega.trace.univ)
   Omega.trace <- na.omit(Omega.trace)
   attr(Omega.trace, "na.action") <- NULL
-  attr(Omega.trace.direct, "na.action") <- NULL
-  attr(spec.ent.trace.direct, "na.action") <- NULL
+  attr(Omega.trace.univ, "na.action") <- NULL
+  attr(spec.ent.trace.univ, "na.action") <- NULL
   attr(wv.trace, "na.action") <- NULL
   attr(spec.ent.trace, "na.action") <- NULL
   
@@ -160,9 +155,9 @@ foreca.EM.one_weightvector <- function(U, f.U = NULL,
   
   out <- list(weightvector.trace = wv.trace,
               h.trace = spec.ent.trace,
-              h.trace.direct = spec.ent.trace.direct,
+              h.trace.univ = spec.ent.trace.univ,
               Omega.trace = Omega.trace,
-              Omega.trace.direct = Omega.trace.direct,
+              Omega.trace.univ = Omega.trace.univ,
               Omega = tail(Omega.trace, 1),
               h = tail(spec.ent.trace, 1),
               weightvector = wv.final,

@@ -17,7 +17,8 @@
 #' ss1 <- mvspectrum(XX[, 1], "direct")
 #' 
 #' SS.1 <- get_spectrum_from_mvspectrum(SS, 1)
-#' plot(ss1, SS.1)
+#' plot.default(ss1, SS.1)
+#' abline(0, 1, lty = 2, col = "blue")
 #' 
 
 get_spectrum_from_mvspectrum <- function(mvspectrum.output, 
@@ -27,7 +28,7 @@ get_spectrum_from_mvspectrum <- function(mvspectrum.output,
   stopifnot(all(which > 0),
             all(which <= num.series))
   
-  if (is.null(num.series)) {
+  if (is.null(num.series) || num.series == 1) {
     # just one dimensional series
     return(mvspectrum.output)
   } else {
@@ -75,7 +76,7 @@ get_spectrum_from_mvspectrum <- function(mvspectrum.output,
 #' ss.yy.comb <- spectrum_of_linear_combination(SS, beta.tmp)
 #' ss.yy <- mvspectrum(yy, "wosa")
 #' 
-#' plot(ss.yy, log = "y")
+#' plot(ss.yy, log = TRUE) # using plot.mvspectrum()
 #' lines(ss.yy.comb, col = "red", lty = 1, lwd = 2) 
 #' 
 spectrum_of_linear_combination <- function(mvspectrum.output, beta) {

@@ -10,7 +10,6 @@ whitenedSeries <- whiten(kSeries)$U
 
 num.freqs.exp <- floor(kNumObs /2)
 
-
 test_that("spec.pgram does not depend on mean", {
   pgram.Series <- spec.pgram(kSeries, plot = FALSE, fast = FALSE)
   pgram.SeriesCentered <- spec.pgram(kSeriesCentered, plot = FALSE, 
@@ -47,25 +46,33 @@ for (mm in kMvspectrumMethods) {
   })
   
   test_that("mvspectrum is real valued in diagonal", {
+    all.diags <- c(apply(spec.Series, 1, function(x) Im(diag(x))))
     # diagonal is real valued
-    expect_true(all(c(apply(spec.Series, 1, function(x) Im(diag(x)))) == 
-                      0),
-                info = test.msg)
+    expect_equal(rep(0, length(all.diags)),
+                 all.diags,
+                 info = test.msg)
   })
   
   test_that("mvspectrum is Hermitian for every frequency", {
+    freq.conj.diff <- apply(spec.Series, 1, function(x) base::norm(x - Conj(t(x)), "2"))
     # for every frequency is Hermitian
-    expect_true(all(apply(spec.Series, 1, function(x) x == 
-                            Conj(t(x)))),
-                info = test.msg)
+    expect_equal(rep(0, length(freq.conj.diff)),
+                 freq.conj.diff,
+                 info = test.msg)
   })
   
   test_that("mvspectrum is positive semi-definite for every frequency", {
     # positive semi-definite for each frequency
     lambdas <- apply(spec.Series, 1, function(x) eigen(x)$values)
-    lambdas.pos <- (round(lambdas, 4) >= 0)
+
+    lambdas.flat <- c(lambdas)
+    expect_equal(Im(lambdas.flat), rep(0, length(lambdas.flat)))
+    
+    lambdas.flat <- Re(lambdas.flat)
+    lambdas.pos <- (round(lambdas.flat, 4) >= 0)
     expect_true(all(lambdas.pos),
-                info = test.msg)
+                info = paste0(test.msg, ";\n ", 
+                              sum(!lambdas.pos), " are negative"))
   })
 }
 
@@ -84,7 +91,8 @@ for (mm in kMvspectrumMethods) {
   })
     
   if (mm == 'direct') {
-    test_that("get_spectrum_from_mvspectrum", {
+    
+    test_that("get_spectrum_from_mvspectrum works", {
       test.msg <- paste0("Testing method direct \n")
       
       spec.Series <- mvspectrum(kSeries, "direct")
@@ -102,13 +110,27 @@ for (mm in kMvspectrumMethods) {
                    info = test.msg)
     })
     
+    test_that("get_spectrum_from_mvspectrum works for univariate spectra", {
+      test.msg <- paste0("Testing method direct \n")
+      
+      spec.Series.1 <- mvspectrum(kSeries[, 1], "direct")
+      expect_equal(c(spec.Series.1), 
+                   c(get_spectrum_from_mvspectrum(spec.Series.1, 1)),
+                   info = test.msg)
+      # if which is unspecified return all
+      expect_equal(c(spec.Series.1), 
+                   c(get_spectrum_from_mvspectrum(spec.Series.1)),
+                   info = test.msg)
+      expect_error(get_spectrum_from_mvspectrum(spec.Series.1, 2))
+    })
+    
     beta.tmp <- cbind(rnorm(ncol(kSeries)))
     
     test_that("spectrum_of_linear_combination gives same as direct estimation", {
       yy.tmp <- kSeries %*% beta.tmp
       spec.Series <- mvspectrum(kSeries, method = mm)
       spec.Series.comb <- spectrum_of_linear_combination(spec.Series, 
-                                                                 beta.tmp)
+                                                         beta.tmp)
       spec.yy <- mvspectrum(yy.tmp, method = mm)
       expect_equal(c(spec.yy), c(spec.Series.comb),
                    info = test.msg)
@@ -148,6 +170,14 @@ for (mm in kMvspectrumMethods) {
   sum.norm.spec.Series <- apply(norm.spec.Series, 2:3, sum)
   cov.norm.spec.Series <- mvspectrum2wcov(norm.spec.Series)
   off.diag <- sum.norm.spec.Series - diag(diag(sum.norm.spec.Series))
+
+  test_that("mvspectrum has attribute 'normalize' = TRUE only if normalize=TRUE", {
+    expect_false(attr(spec.Series, "normalized"),
+                 info = test.msg)
+    expect_true(attr(norm.spec.Series, "normalized"),
+                info = test.msg)
+  })
+  
   
   test_that("normalize gives 0 real off-diagonals", {
     expect_equal(matrix(0, ncol = ncol(kSeries), nrow = ncol(kSeries)),
@@ -185,13 +215,15 @@ for (mm in kMvspectrumMethods) {
   #              info = test.msg)
   #})
   
-  
   test_that("normalize makes it add up to 0.5", {
     norm.spec.yy.2 <- mvspectrum(scale(kSeries[, 2]), 
                                  method = mm, normalize = TRUE)
     expect_equal(0.5, sum(norm.spec.yy.2),
                  info = test.msg)
   })
+  
+  beta.tmp <- t(initialize_weightvector(num.series = ncol(kSeries),
+                                        method = 'rnorm'))
   
   spec.whitenedSeries <- mvspectrum(whitenedSeries, method = mm)      
   norm.spec.Series <- normalize_mvspectrum(spec.whitenedSeries)
@@ -216,45 +248,54 @@ for (mm in kMvspectrumMethods) {
     }
   })
   
-  
-  
   # Not true anymore if normalization is done by pre-multiplying
   # by inverse of sum.
   test_that("normalized_mvspectrum is real valued in diagonal", {
+    all.diags <- c(apply(norm.spec.Series, 1, function(x) Im(diag(x))))
     # diagonal is real valued
-    expect_true(all(c(apply(norm.spec.Series, 1, function(x) Im(diag(x)))) == 
-                      0),
-                info = test.msg)
+    expect_equal(rep(0, length(all.diags)),
+                 all.diags,
+                 info = test.msg)
   })
   
   test_that("normalized_mvspectrum is Hermitian for every frequency", {
+    freq.conj.diff <- apply(norm.spec.Series, 1, 
+                            function(x) base::norm(x - Conj(t(x)), "2"))
     # for every frequency is Hermitian
-    expect_true(all(apply(norm.spec.Series, 1, 
-                          function(x) {x == Conj(t(x))}
-                          )),
-                info = test.msg)
+    expect_equal(rep(0, length(freq.conj.diff)),
+                 freq.conj.diff,
+                 info = test.msg)
   })
   
 
   test_that("normalize mvspectrum is positive semi-definite for every frequency", {
     # positive semi-definite for each frequency
     lambdas <- apply(norm.spec.Series, 1, function(x) eigen(x)$values)
-    expect_true(all(round(lambdas, 4) >= 0),
-                info = test.msg)
+    
+    lambdas.flat <- c(lambdas)
+    expect_equal(Im(lambdas.flat), rep(0, length(lambdas.flat)))
+    
+    lambdas.flat <- Re(lambdas.flat)
+    lambdas.pos <- (round(lambdas.flat, 4) >= 0)
+    expect_true(all(lambdas.pos),
+                info = paste0(test.msg, ";\n ", 
+                              sum(!lambdas.pos), " are negative"))
   })
-
-
+    
   test_that("L2 norm = 1 combination of whitened series: spectrum_of_linear_combination", {
-    beta.tmp <- t(initialize_weightvector(num.series = ncol(kSeries),
-                                          method = 'rnorm'))
     yy.tmp <- whitenedSeries %*% beta.tmp
     
     spec.Series <- mvspectrum(whitenedSeries, method = mm, normalize = TRUE)
     spec.Series.comb <- spectrum_of_linear_combination(spec.Series, 
-                                                               beta.tmp)
+                                                       beta.tmp)
     expect_equal(0.5, sum(spec.Series.comb))
     spec.yy <- mvspectrum(yy.tmp, method = mm, normalize = TRUE)
-    expect_true(cor(log(spec.Series.comb + 1e-5), log(spec.yy + 1e-5)) > 0.9,
+    
+    #layout(matrix(1:4, ncol = 2))
+    #matplot(cbind(spec.Series.comb, spec.yy))
+    #plot(spec.Series.comb, spec.yy)
+    #plot(log(spec.Series.comb + median(spec.yy)), log(spec.yy + median(spec.yy)))
+    expect_true(cor(spec.Series.comb, spec.yy) > 0.95,
                 info = test.msg)
   })
 

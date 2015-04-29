@@ -52,7 +52,7 @@ for (mm in kMvspectrumMethods) {
   
   test_that("weightvector and direct spectrum.estimate give the same entropy", {
     expect_equal(int.mvspec, int.mvspec.direct,
-                 info = test.msg, tol = 1e-7)
+                 info = test.msg, tol = 1e-6)
   })
   
   yy.entropy.by.int <- quadratic_form(int.mvspec, ww.tmp)
@@ -61,7 +61,7 @@ for (mm in kMvspectrumMethods) {
   test_that("spectral entropy by direct estimation is the same as by quadratic form on integrated mvspectrum", {
     expect_equal(yy.entropy.by.int, 
                  as.numeric(yy.entropy.direct),
-                 tol = 1e-4,
+                 tol = 1e-3,
                  info = test.msg)
   })
 

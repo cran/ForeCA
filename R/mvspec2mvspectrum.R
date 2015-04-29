@@ -16,7 +16,6 @@
 
 .mvspec2mvspectrum <- function(mvspec.output) {
   out <- base::aperm(mvspec.output$fxx, c(3, 1, 2))
-  # out <- R.utils::wrap(mvspec.output$fxx, map = list(3, 1, 2))
   if (ncol(out) == 1) {
     # remove '+0i' imaginary part for univariate spectra
     out <- Re(out)

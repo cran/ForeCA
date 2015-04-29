@@ -2,6 +2,7 @@ context("\ninitialize_weightvector")
 
 kNumVariables <- 4
 kAvailableMethods <- c("SFA", "SFA.slow", "SFA.fast", 
+                       "PCA", "PCA.small", "PCA.large",
                        "rcauchy", "runif", "rnorm", "max")
 
 kNumObs <- 100

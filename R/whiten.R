@@ -176,11 +176,14 @@ sqrt_matrix <- function(mat, return.sqrt.only = TRUE, symmetric = FALSE) {
   mat.eig <- eigen(mat, symmetric = symmetric)
   
   lambdas <- mat.eig$values
-  if (any(lambdas < 0)) {
-    lambdas[lambdas < 0] <- lambdas[lambdas < 0] + 0i
+  if (all.equal(rep(0, length(lambdas)), Im(lambdas))) {
+    lambdas <- Re(lambdas)
+    if (any(lambdas < 0)) {
+      lambdas[lambdas < 0] <- lambdas[lambdas < 0] + 0i
+    } 
   }
   
-  if (any(lambdas == 0)) {
+  if (any(lambdas == 0) || any(lambdas == 0 + 1i * 0)) {
     warning("The matrix does not have full rank; some eigenvalues are 0.")
   }
   
@@ -190,6 +193,7 @@ sqrt_matrix <- function(mat, return.sqrt.only = TRUE, symmetric = FALSE) {
     diag.mat <- diag(1) * sqrt(lambdas)
   }
   sqrt.mat <- as.matrix(mat.eig$vector) %*% diag.mat %*% t(mat.eig$vector)
+  
   if (return.sqrt.only) {
     return(sqrt.mat)
   } else {

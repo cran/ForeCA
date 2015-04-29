@@ -34,7 +34,8 @@ summary.foreca <- function(object, lag = 10, alpha = 0.05, ...) {
   
   out <- list(p.value = round(pvals, 4), 
               p.value.orig = round(pvals.orig, 4), 
-              Omega = object$Omega, 
+              Omega = object$Omega,
+              Omega.univ = object$Omega.univ,
               Omega.orig = 
                 Omega(object$series, spectrum.control = object$spectrum.control,
                       entropy.control = object$entropy.control),
@@ -66,7 +67,7 @@ print.foreca <- function(x, ...) {
       " are white noise.\n\n", sep = "")
   
   max.Omega.orig <- max(SO$Omega.orig)
-  max.Omega.foreca <- SO$Omega[1]
+  max.Omega.foreca <- SO$Omega.univ[1]
   
   cat("Omega(ForeC 1) = ", round(max.Omega.foreca, 2), "%",
       " vs. maximum Omega(", object$series.name, ") = ", 
@@ -100,7 +101,7 @@ print.foreca <- function(x, ...) {
 biplot.foreca <- function(x, ...) {
   object.princomp <- x
   class(object.princomp) <- "princomp"
-  biplot(object.princomp, ...)
+  stats::biplot(object.princomp, ...)
   abline(h = 0)
   abline(v = 0)
 }
@@ -124,24 +125,24 @@ plot.foreca <- function(x, lag = 10, alpha = 0.05, ...) {
   layout(matrix(1:6, ncol = 3, byrow = TRUE))
   biplot(object)
   
-  ylim.max <- max(SO$Omega.orig, object$Omega) * 1.05
+  ylim.max <- max(SO$Omega.orig, object$Omega.univ) * 1.05
   
   # replace 'Series' with 'ForeC'
-  names(object$Omega) <- gsub("Series ", "ForeC", names(object$Omega))
-  barplot(as.vector(object$Omega), main = "Forecastability", 
-          names.arg = names(object$Omega), 
-          ylab = expression(hat(Omega)(x[t]) ~ " (in %)"), 
+  names(object$Omega.univ) <- gsub("Series ", "ForeC", names(object$Omega.univ))
+  barplot(as.vector(object$Omega.univ), main = "Forecastability", 
+          names.arg = names(object$Omega.univ), 
+          ylab = expression(hat(Omega.univ)(x[t]) ~ " (in %)"), 
           ylim = c(0, ylim.max))
   
-  abline(h = object$Omega[1], lty = 2, col = 4)
-  abline(h = object$Omega[n.comp], lty = 3, col = 4)
+  abline(h = object$Omega.univ[1], lty = 2, col = 4)
+  abline(h = object$Omega.univ[n.comp], lty = 3, col = 4)
   
   barplot(as.vector(SO$Omega.orig), main = "Forecastability", 
           names.arg = names(SO$Omega.orig), 
           ylab = expression(hat(Omega)(x[t]) ~ " (in %)"), 
           ylim = c(0, ylim.max))
-  abline(h = object$Omega[1], lty = 2, col = 4)
-  abline(h = object$Omega[n.comp], lty = 3, col = 4)
+  abline(h = object$Omega.univ[1], lty = 2, col = 4)
+  abline(h = object$Omega.univ[n.comp], lty = 3, col = 4)
   
   if (ncol(object$scores) >= 4) {
     biplot(object, 3:4)

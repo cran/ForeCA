@@ -19,19 +19,10 @@
 # # @param sdf.output an object of class \code{"SDF"} from \code{\link[sapa]{SDF}}
 # # @keywords ts manip
 
-
-.fill_symmetric <- function(mat) {
-  mat <- mat + Conj(t(mat))
-  ind <- lower.tri(mat)
-  mat[ind] <- t(Conj(mat))[ind]
-  diag(mat) <- diag(mat) / 2  # remove double count of diagonal
-  return(mat)
-}
-
 .SDF2mvspectrum <- function(sdf.output) {
   num.series <- attr(sdf.output, "n.series")
   num.freqs <- length(attr(sdf.output, "frequency"))
-  f.lambda <- array(0, dim = c(num.freqs, num.series, num.series))
+  f.lambda <- array(NA, dim = c(num.freqs, num.series, num.series))
   
   if (num.series > 1) {
     col.sels <- seq_len(num.series)
@@ -41,7 +32,7 @@
       col.sels <- col.sels + (num.series - ii)
       col.sels <- col.sels[-1]
     }
-    f.lambda <- apply(f.lambda, 1, .fill_symmetric)
+    f.lambda <- apply(f.lambda, 1, fill_hermitian)
     f.lambda <- array(t(f.lambda), dim = c(num.freqs, num.series, num.series))
   } else {
     f.lambda[, 1, 1] <- c(sdf.output)

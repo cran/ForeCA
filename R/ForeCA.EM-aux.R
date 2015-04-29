@@ -108,10 +108,10 @@ foreca.EM.M_step <- function(f.U, f.current, minimize = TRUE,
   entropy.control <- complete_entropy_control(entropy.control,
                                               num.outcomes = 2 * num.freqs)
   integrated.spectrum.entropy <- 
-    weightvector2entropy_wcov(NULL, 
-                                               f.U = f.U,
-                                               f.current = f.current,
-                                               entropy.control = entropy.control)
+      weightvector2entropy_wcov(NULL, 
+                                f.U = f.U,
+                                f.current = f.current,
+                                entropy.control = entropy.control)
   EE <- eigen(integrated.spectrum.entropy, symmetric = TRUE)
   sel <- ifelse(minimize, which.min(EE$values), which.max(EE$values))
   
@@ -125,6 +125,36 @@ foreca.EM.M_step <- function(f.U, f.current, minimize = TRUE,
               value = EE$values[sel])
   return(out)
 } 
+
+#' @rdname foreca.EM-aux
+#' @description
+#' \code{foreca.EM.E_and_M_step} is a wrapper around \code{foreca.EM.E_step}
+#' followed by \code{foreca.EM.M_step}.
+#' @keywords manip
+#' @inheritParams common-arguments
+#' @export
+#' @return
+#' Contrary to \code{foreca.EM.M_step}, \code{foreca.EM.E_and_M_step} only returns the optimal 
+#' weightvector as a numeric. 
+#' @examples
+#' 
+#' ww0 <- initialize_weightvector(NULL, ff, method = "rnorm")
+#' ww1 <- foreca.EM.E_and_M_step(ww0, ff)
+#' ww0
+#' ww1
+#' barplot(rbind(ww0, ww1), beside = TRUE)
+#' abline(h = 0, col = "blue", lty = 2)
+#' 
+
+foreca.EM.E_and_M_step <- function(weightvector, f.U, minimize = TRUE,
+                                   entropy.control = list()) {
+  
+  f.current <- spectrum_of_linear_combination(f.U, weightvector)
+  opt.vec <- foreca.EM.M_step(f.U, f.current, minimize = minimize,
+                              entropy.control = entropy.control)$vector
+  return(opt.vec)
+} 
+
 
 #' @rdname foreca.EM-aux
 #' @description
@@ -173,7 +203,7 @@ foreca.EM.h <- function(weightvector.new, f.U,
                         entropy.control = list(),
                         return.negative = FALSE) {
   
-  # short as quadratic_form(apply(f.U*log(weightvector.current), 2:3, sum),
+  # short as quadratic_form(apply(f.U*-log(weightvector.current), 2:3, sum),
   # weightvector.new)
   stopifnot(length(weightvector.current) == length(weightvector.new),
             all(f.current >= 0) || is.null(f.current))
@@ -191,12 +221,11 @@ foreca.EM.h <- function(weightvector.new, f.U,
   entropy.control <- complete_entropy_control(entropy.control,
                                               num.outcomes = 2 * num.freqs)
   integrated.spectrum.entropy <- 
-    weightvector2entropy_wcov(NULL, 
-                                               f.U = f.U,
-                                               f.current = f.current,
-                                               entropy.control = 
-                                                 entropy.control)
+      weightvector2entropy_wcov(NULL, 
+                                f.U = f.U,
+                                f.current = f.current,
+                                entropy.control = entropy.control)
   
   return(quadratic_form(integrated.spectrum.entropy, weightvector.new))
-} 
+}
 

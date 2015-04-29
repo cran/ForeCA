@@ -26,6 +26,10 @@
 #'  \item{\code{"rcauchy"}}{ random start using \code{rcauchy(k)}.}
 #'  \item{\code{"rnorm"}}{ random start using \code{rnorm(k, 0, 1)}.}
 #'  \item{\code{"runif"}}{ random start using \code{runif(k, -1, 1)}.}
+#'  \item{\code{"PCA.large"}}{ first eigenvector of PCA (largest variance signal).}
+#'  \item{\code{"PCA.small"}}{ last eigenvector of PCA (smallest variance signal).}
+#'  \item{\code{"PCA"}}{ checks both small and large, and chooses the one with higher
+#'             forecastability as computed by \code{\link{Omega}}..}
 #'  \item{\code{"SFA.fast"}}{ last eigenvector of SFA (fastest signal).}
 #'  \item{\code{"SFA.slow"}}{ first eigenvector of SFA (slowest signal).}
 #'  \item{\code{"SFA"}}{ checks both slow and fast, and chooses the one with higher
@@ -50,8 +54,9 @@
 #' 
 initialize_weightvector <- function(U = NULL, f.U = NULL, 
                                     num.series = ncol(U),
-                                    method = c("rnorm", "max", "SFA", "SFA.slow", "SFA.fast", 
-                                               "rcauchy", "runif"), 
+                                    method = c("rnorm", "max", "SFA", "PCA", 
+                                               "rcauchy", "runif", "SFA.slow", "SFA.fast",
+                                               "PCA.large", "PCA.small"), 
                                     seed = sample(1e6, 1), ...) {
         
     stopifnot(is.null(U) || is.array(U) || is.ts(U) || is.matrix(U),
@@ -70,8 +75,9 @@ initialize_weightvector <- function(U = NULL, f.U = NULL,
       stop("You must provide either 'num.series', 'series', or 'f.U'.")
     }
     
-    if (method %in% c("SFA", "SFA.slow", "SFA.fast") && is.null(U)) {
-      stop("For SFA-type methods you must provide data via the 'U' argument.")
+    if (method %in% c("SFA", "SFA.slow", "SFA.fast",
+                      "PCA", "PCA.large", "PCA.small") && is.null(U)) {
+      stop("For SFA- or PCA-type methods you must provide data via the 'U' argument.")
     } 
     
     if (is.null(num.series)) {
@@ -120,8 +126,30 @@ initialize_weightvector <- function(U = NULL, f.U = NULL,
           ww0 <- ww.slow
         }
       }
+    } else if (method %in% c("PCA", "PCA.large", "PCA.small")) {
+      pca.est <- princomp(U, ...)
+      ww.large <- pca.est$loadings[, 1]
+      ww.small <- pca.est$loadings[, num.series]
       
+      if (method == "PCA.large") {
+        ww0 <- ww.large
+      } else if (method == "PCA.small") {
+        ww0 <- ww.small
+      } else if (method == "PCA") {
+        stopifnot(!is.null(f.U))
+        
+        omega.large <- Omega(mvspectrum.output = foreca.EM.E_step(f.U, ww.large))
+        omega.small <- Omega(mvspectrum.output = foreca.EM.E_step(f.U, ww.small))
+        if (omega.small > omega.large) {
+          ww0 <- ww.small
+        } else {
+          ww0 <- ww.large
+        }
+      }
+    } else {
+      stop("Method '", method, "' is not available for initialize_weightvector().")
     }
+    
     if (ww0[1] != 0) {
       # make the first entry always positive (if it's not zero)
       ww0 <- ww0 * sign(ww0[1])

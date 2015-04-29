@@ -62,17 +62,15 @@
 #' (which is usually more smooth, less variable). Thus estimating
 #' \eqn{\widehat{f}_y} directly  from \eqn{y_t} can give slightly different
 #' estimates to computing it as \eqn{\mathbf{w}'\widehat{f}_{\mathbf{X}}\mathbf{w}}.  Consequently also \code{Omega} estimates
-#' can be slightly different. 
+#' can be different. 
+#' 
 #' 
 #' In general, these differences are small and have no relevant implications
-#' for estimating ForeCs.  However, in some rare occasions, the obtained ForeCs can have
+#' for estimating ForeCs.  However, especially for rare occasions, the obtained ForeCs can have
 #' smaller \code{Omega} than the maximum \code{Omega} of the original series.
 #' In such a case users should not re-estimate \eqn{\Omega} from the resulting
 #' ForeCs \eqn{\mathbf{F}_t}, but access them via \code{$Omega} provided 
-#' by \code{'foreca'} output. 
-#' 
-#' Making estimation for univariate and multivariate series consistent remains
-#' a task for future package updates.
+#' by \code{'foreca'} output (the univariate estimates are stored in \code{$Omega.univ}).
 #' 
 #' @references
 #' Goerg, G. M. (2013). \dQuote{Forecastable Component Analysis}. 
@@ -92,7 +90,7 @@
 
 foreca <- function(series, n.comp = 2, algorithm.type = "EM", ...) {
   
-  series.name <- deparse(substitute(kSeries))
+  series.name <- deparse(substitute(series))
   
   num.series <- ncol(series)
   if (is.null(num.series) || num.series == 1) {
@@ -115,18 +113,22 @@ foreca <- function(series, n.comp = 2, algorithm.type = "EM", ...) {
   } else {
     stop(paste("Algorithm type '", algorithm.type, "' is not implemented."))
   }
-  
+  out$weightvectors <- cbind(out$weightvectors)
   out$whitening <- PW.all$whitening
   out$loadings <- PW.all$whitening %*% out$weightvectors
   
   rownames(out$loadings) <- colnames(series)
   colnames(out$loadings) <- paste0("ForeC", seq_len(ncol(out$loadings)))
   class(out$loadings) <- "loadings"
-  
+
   out <- c(out,
            list(n.obs = nrow(series),
-                Omega.matrix = out$loadings %*% diag(out$Omega) %*% t(out$loadings),
-                Omega.U.matrix = out$weightvectors %*% diag(out$Omega) %*% 
+                Omega.matrix = 
+                  out$loadings %*% diag(out$Omega, 
+                                        nrow = length(out$Omega)) %*% 
+                  t(out$loadings),
+                Omega.U.matrix = out$weightvectors %*% diag(out$Omega,
+                                                            nrow = length(out$Omega)) %*% 
                   t(out$weightvectors),
                 sdev = out$Omega,
                 lambdas = out$Omega,
@@ -346,11 +348,13 @@ foreca.one_weightvector <- function(U, f.U = NULL,
                 Omega.init = Omega.init,
                 Omega = Omega.best,
                 best.f = 
-                  spectrum_of_linear_combination(f.U,
-                                                         out$weightvector)))
-  out$best.f.direct <- c(mvspectrum(out$score,
-                                   spectrum.control = spectrum.control,
-                                   normalize = TRUE))
+                  spectrum_of_linear_combination(f.U, out$weightvector)))
+  out$best.f.univ <- c(mvspectrum(out$score,
+                                  spectrum.control = spectrum.control,
+                                  normalize = TRUE))
+  out$Omega.univ <- Omega(out$score,
+                          spectrum.control = spectrum.control,
+                          entropy.control = entropy.control)
   if (keep.all.optima) {
     out$all.optima <- all.optima
   }
@@ -435,6 +439,7 @@ foreca.multiple_weightvectors <- function(U, algorithm.type = "EM",
                 scores = matrix(NA, ncol = n.comp, nrow = num.obs),
                 h = rep(NA, n.comp),
                 Omega = rep(NA, n.comp),
+                Omega.univ = rep(NA, n.comp),
                 weights = list()))
   
   null.space <- diag(1, num.series)
@@ -453,6 +458,9 @@ foreca.multiple_weightvectors <- function(U, algorithm.type = "EM",
       out$Omega[comp.id] <- Omega(UU.in.null,
                                   spectrum.control = spectrum.control,
                                   entropy.control = entropy.control)
+      out$Omega.univ[comp.id] <- Omega(UU.in.null,
+                                       spectrum.control = spectrum.control,
+                                       entropy.control = entropy.control)
       out$weights[[comp.id]] <- 1
     } else {
       # This is the actual algorithm that obtains the new w*
@@ -467,37 +475,37 @@ foreca.multiple_weightvectors <- function(U, algorithm.type = "EM",
       # plot results
       if (plot) {
         plot(opt.wv, main = paste("Component", comp.id))
-        Sys.sleep(0.04)
       }
       out$h[comp.id] <- opt.wv$h
       out$scores[, comp.id] <- opt.wv$score
       out$weights[[comp.id]] <- opt.wv$weightvector
       out$Omega[comp.id] <- opt.wv$Omega
+      out$Omega.univ[comp.id] <- opt.wv$Omega.univ
     }
     out$weightvectors[, comp.id] <- null.space %*% matrix(out$weights[[comp.id]],
                                                           ncol = 1)
     null.space <- MASS::Null(out$weightvectors[, seq_len(comp.id)])
   }
   
-  omega.order <- order(out$Omega, decreasing = TRUE)
+  omega.order <- order(out$Omega.univ, decreasing = TRUE)
   if (!identical(sort(omega.order), omega.order)) {
-    print(out$Omega)
-    print(omega.order)
     warning("'foreca.multiple_weightvectors()' did not extract ForeCs in order of ",
             "decreasing forecastability; ",
             "loadings and sources were re-ordered accordingly. ",
             "Please check results.")
+    cat("Original order:\n")
+    cat("\t", paste(omega.order, collapse = ", "), "\n")
+    
     out$scores <- out$scores[, omega.order]
     out$weightvectors <- out$weightvectors[, omega.order]
     out$Omega <- out$Omega[omega.order]
+    out$Omega.univ <- out$Omega.univ[omega.order]
     out$h <- out$h[omega.order]
   }
   colnames(out$scores) <- paste0("ForeC", seq_len(ncol(out$scores)))
   class(out$weightvectors) <- "loadings"
   names(out$Omega) <- colnames(out$scores)
   
-  print(out$Omega)
-  out$scores.tmp <- UU %*% out$weightvectors
   class(out) <- "foreca.multiple_weightvectors"
   return(out)
 }

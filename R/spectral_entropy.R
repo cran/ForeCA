@@ -44,7 +44,7 @@
 #' spectral_entropy(eps)
 #' 
 #' phi.v <- seq(-0.95, 0.95, by = 0.1)
-#' kMethods <- c("wosa", "multitaper", "direct", "lag window", "pgram")
+#' kMethods <- c("wosa", "multitaper", "direct", "pgram")
 #' SE <- matrix(NA, ncol = length(kMethods), nrow = length(phi.v))
 #' for (ii in seq_along(phi.v)) {
 #'   xx.tmp <- arima.sim(n = 200, list(ar = phi.v[ii]))
@@ -78,28 +78,32 @@ spectral_entropy <- function(series = NULL, spectrum.control = list(),
                              entropy.control = list(),
                              mvspectrum.output = NULL, ...){
   
-  stopifnot(!is.null(series) || !is.null(mvspectrum.output),
+  stopifnot(xor(is.null(series), is.null(mvspectrum.output)),
             is.null(mvspectrum.output) || 
               length(dim(mvspectrum.output)) >= 0)
 
   if (is.null(mvspectrum.output)) {
+
     series <- as.matrix(series)
     num.series <- ncol(series)
     is.whitened <- (identical(cov(series), diag(1, num.series)) && 
                       isTRUE(all.equal(colMeans(series), 0)))
-    
+    #cat("Computing mvspectrum in spectral_entropy with normalize = ", 
+    #    paste(is.whitened), "\n")
     spectrum.control <- complete_spectrum_control(spectrum.control)
     mvspectrum.output <- mvspectrum(series, 
                                     method = spectrum.control$method, 
                                     smoothing = spectrum.control$smoothing,
                                     normalize = is.whitened,
                                     ...)
-  } else {
-    num.series <- ncol(as.matrix(mvspectrum.output))
   }
+  if (is.null(dim(mvspectrum.output))) {
+    dim(mvspectrum.output) <- c(length(mvspectrum.output), 1, 1)
+  }
+  num.series <- dim(mvspectrum.output)[2]
   
   if (num.series > 1) {
-    num.freqs <- nrow(mvspectrum.output)
+    num.freqs <- dim(mvspectrum.output)[1]
   } else {
     num.freqs <- length(mvspectrum.output)
   }
@@ -116,6 +120,9 @@ spectral_entropy <- function(series = NULL, spectrum.control = list(),
     spec.dens <- c(rev(c(mvspectrum.output)), c(mvspectrum.output))
     spec.dens[spec.dens < 0] <- 0
     spec.dens <- spec.dens / sum(spec.dens)
+    #cat("spectral_entropy produces normalized:\n")
+    #print(spec.dens)
+    #cat("with sum =", sum(spec.dens), "\n")
     spec.ent <- do.call("discrete_entropy", 
                         c(list(probs = spec.dens), entropy.control))
   }

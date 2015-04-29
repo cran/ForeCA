@@ -29,6 +29,9 @@
 #'  \item num.freqs is the number of frequencies
 #'  \item K is the number of series (columns in \code{series}).
 #' }
+#' Note that it also has an attribute \code{"normalized"} which is
+#' \code{FALSE} if \code{normalize = FALSE}; otherwise \code{TRUE}.
+#' See \code{normalize_mvspectrum} for details.
 #' @references 
 #' See References in \code{\link[stats]{spectrum}}, \code{\link[sapa]{SDF}}, 
 #' \code{\link[astsa]{mvspec}}.
@@ -60,11 +63,21 @@
 
 mvspectrum <- function(series, 
                        method = 
-                         c("pgram", "multitaper", "direct", "lag window", "wosa", 
+                         c("pgram", "multitaper", "direct", "wosa", 
                            "mvspec", "ar"),
                        normalize = FALSE, smoothing = FALSE, ...) {
   
   method <- match.arg(method)
+  
+  addl.args <- list(...)
+  if ("spectrum.control" %in% addl.args) {
+    stop("'spectrum.control' is not a valid argument of 'mvspectrum'.",
+         "Use method = spectrum.control$method and ",
+         "smoothing = spectrum.control$smoothing directly instead.")
+  } 
+  if ("entropy.control" %in% addl.args) {
+    stop("'entropy.control' is not a valid argument of 'mvspectrum'.")
+  }
   
   series <- as.matrix(series)
   num.series <- ncol(series)
@@ -84,12 +97,13 @@ mvspectrum <- function(series,
   if (method == "mvspec") {
     stopifnot(requireNamespace("astsa", quietly = TRUE))
     out <- .mvspec2mvspectrum(astsa::mvspec(series, plot = FALSE, 
-                                            detrend = FALSE, fast = FALSE, ...))
+                                            detrend = FALSE, fast = FALSE, 
+                                            ...))
   } else if (method == "ar") {
     stopifnot(num.series == 1)
     out <- spec.ar(c(series), method = "burg", plot = FALSE,
                    n.freq = ceiling(length(series) / 2 + 1))$spec[-1]
-  } else if (method %in% c("wosa", "multitaper", "lag window", "direct")) {
+  } else if (method %in% c("wosa", "multitaper", "direct")) {
     stopifnot(requireNamespace("sapa", quietly = TRUE)) 
     out <- .SDF2mvspectrum(sdf.output = sapa::SDF(series, method = method, 
                                                   recenter = TRUE, 
@@ -125,21 +139,22 @@ mvspectrum <- function(series,
   #   - divide by 2 since it is symmetric around 0
   #   - divide by number of frequencies so that the sum over spectrum = variance
   out <- out / num.obs
-  
-  if (normalize) {
-    out <- normalize_mvspectrum(out)
-  }
+ 
   # add frequencies from (0, pi]; remove '0' frequency
   if (num.series == 1) {
     num.freqs.in.0.pi <- length(out)
   } else {
     num.freqs.in.0.pi <- nrow(out)
   }
-  
   attr(out, "frequency") <- 
     seq(1, num.freqs.in.0.pi, by = 1) / (2 * num.freqs.in.0.pi + 1) * (2 * pi)
-  class(out) <- "mvspectrum"
+  attr(out, "normalized") <- FALSE
+
+  if (normalize) {
+    out <- normalize_mvspectrum(out)
+  }
   
+  class(out) <- "mvspectrum"
   invisible(out)
 } 
 #' @rdname mvspectrum
@@ -193,52 +208,34 @@ normalize_mvspectrum <- function(mvspectrum.output) {
   
   if (is.null(dim(mvspectrum.output))) {
     num.series <- 1
+    num.freqs <- length(mvspectrum.output)
   } else {
-    num.series <- ncol(mvspectrum.output)  
+    num.series <- ncol(mvspectrum.output) 
+    num.freqs <- nrow(mvspectrum.output)
   }
-  
-  #if (!is.null(Sigma.X)) {
-  #  stopifnot(is.matrix(Sigma.X),
-  #            ncol(Sigma.X) == nrow(Sigma.X)) # square
-  #  
-  #  if (ncol(Sigma.X) != num.series) {
-  #    stop("Covariance matrix 'Sigma' must have dimension ", 
-  #         num.series, "x", num.series, 
-  #         " (since mvspectrum has", num.series, "time series).")
-  #  }
-  # }
   
   if (num.series == 1) {
     # just one dimensional series
     f3D <- mvspectrum.output / sum(mvspectrum.output)
     num.series <- 1
   } else {
-    spectra.sum <- apply(mvspectrum.output, 2:3, sum)
-    diag.normalize <- matrix(1, ncol = num.series, nrow = num.series)
-    diag(diag.normalize) <- diag(spectra.sum)
+    # note that this multiplies by 2 already; as we later us this
+    # ad a divisor (and thus divide by 2), we have to multiply by 2 again
+    # below
+    cov.est.spectrum <- mvspectrum2wcov(mvspectrum.output)
+    ss.sqrt.inv <- sqrt_matrix(cov.est.spectrum, return.sqrt.only = FALSE,
+                               symmetric = TRUE)$sqrt.inverse
+    # here multiply by 2 again as we use the full left and right spectrum
+    # to estimate the covariance matrix
     f3D <- array(t(apply(mvspectrum.output, 1, 
-                         function(x) x / diag.normalize)),
+                         function(x) 2 * t(Conj(ss.sqrt.inv)) %*% x %*%
+                           ss.sqrt.inv)),
                  dim(mvspectrum.output))
-    
-    # divide by number of frequencies so that the sum over all frequencies
-    # then becomes equal to the off-diagonal
-    spectra.mean <- apply(f3D, 2:3, mean)
-    # only subtract the real part; the imaginary parts cancel each other out
-    # since it's hermitian
-    off.diag <- spectra.mean - diag(diag(spectra.mean))
-    f3D <- array(t(apply(f3D, 1, 
-                         function(x) x - Re(off.diag))),
-                 dim(mvspectrum.output))
-    
-  #  if (!is.null(Sigma.X)) {
-  #    Sigma.X.norm <- Sigma.X / dim(f3D)[1]
-  #    f3D <- array(t(apply(mvspectrum.output, 1, 
-  #                         function(x) x * Sigma.X.norm)),
-  #                 dim(mvspectrum.output))
-  #  }
   }
   # divide by 2 since we only consider positive frequencies here 
   # (and it is symmetric around 0)
+  attr(f3D, "normalized") <- TRUE
+  attr(f3D, "frequency") <- attr(mvspectrum.output, "frequency")
   return(f3D / 2)
 } 
 
@@ -249,52 +246,61 @@ normalize_mvspectrum <- function(mvspectrum.output) {
 #' \code{check_mvspectrum_normalized} checks if the spectrum is normalized 
 #' (see \code{\link{normalize_mvspectrum}} for the requirements).
 #' @inheritParams common-arguments
+#' @param check.attribute.only logical; if \code{TRUE} it checks the 
+#' attribute only.  This is much faster (it just needs to look up one attribute
+#' value), but it might not surface silent bugs.  For sake of performance
+#' the package uses the attribute version by default.  However, for 
+#' testing/debugging the full computational version can be used.
 #' @return
 #' \code{check_mvspectrum_normalized} throws an error if spectrum is not
 #' normalized correctly.
 #' 
-check_mvspectrum_normalized <- function(f.U) {
+check_mvspectrum_normalized <- function(f.U, check.attribute.only = TRUE) {
   
-  if (is.null(dim(f.U))) {
-    num.series <- 1
-    sum.of.spectrum <- as.matrix(sum(f.U))
+  if (check.attribute.only) {
+    stopifnot(attr(f.U, "normalized") == TRUE)
   } else {
-    num.series <- dim(f.U)[2]
-    sum.of.spectrum <- apply(f.U, 2:3, sum)
-  }
-
-  off.diag <- sum.of.spectrum
-  diag(off.diag) <- 0
-  
-  equals <- list()
-  equals[["add-to-0.5"]] <- all.equal(target = diag(0.5, num.series),
-                                      current = Re(sum.of.spectrum),
-                                      check.names = FALSE,
-                                      check.attributes = FALSE)
-  equals[["off-diagonal-zero"]] <- all.equal(target = matrix(0, num.series, num.series),
-                                             current = Re(off.diag),
-                                             check.names = FALSE,
-                                             check.attributes = FALSE)
-  equals[["Hermitian"]] <- all.equal(target = off.diag,
-                                     current = Conj(t(off.diag)),
-                                     check.names = FALSE,
-                                     check.attributes = FALSE)
-  
-  errors <- c("add-to-0.5" = paste("A _normalized_ spectrum must add up to",
-                                        "0.5 times identity matrix."),
-              "off-diagonal-zero" = paste("Off diagonals must have zero reals."),
-              "Hermitian" = paste("The normalized spectrum must be Hermitian."))
-  
-  ind.errors <- !sapply(equals, isTRUE)
-  
-  if (any(ind.errors) > 0) {
-    for (ii in seq_along(ind.errors)) {
-      if (ind.errors[ii]) {
-        cat(names(equals)[ii], ": ", equals[[ii]], "\n", sep = "")
-      }
+    if (is.null(dim(f.U))) {
+      num.series <- 1
+      sum.of.spectrum <- as.matrix(sum(f.U))
+    } else {
+      num.series <- dim(f.U)[2]
+      sum.of.spectrum <- apply(f.U, 2:3, sum)
     }
-    stop("Spectral density must be normalized:\n \t ", 
-         paste(errors[ind.errors], collapse = "\n \t ")) 
+  
+    off.diag <- sum.of.spectrum
+    diag(off.diag) <- 0
+    
+    equals <- list()
+    equals[["add-to-0.5"]] <- all.equal(target = diag(0.5, num.series),
+                                        current = Re(sum.of.spectrum),
+                                        check.names = FALSE,
+                                        check.attributes = FALSE)
+    equals[["off-diagonal-zero"]] <- all.equal(target = matrix(0, num.series, num.series),
+                                               current = Re(off.diag),
+                                               check.names = FALSE,
+                                               check.attributes = FALSE)
+    equals[["Hermitian"]] <- all.equal(target = off.diag,
+                                       current = Conj(t(off.diag)),
+                                       check.names = FALSE,
+                                       check.attributes = FALSE)
+    
+    errors <- c("add-to-0.5" = paste("A _normalized_ spectrum must add up to",
+                                          "0.5 times identity matrix."),
+                "off-diagonal-zero" = paste("Off diagonals must have zero reals."),
+                "Hermitian" = paste("The normalized spectrum must be Hermitian."))
+    
+    ind.errors <- !sapply(equals, isTRUE)
+    
+    if (any(ind.errors) > 0) {
+      for (ii in seq_along(ind.errors)) {
+        if (ind.errors[ii]) {
+          cat(names(equals)[ii], ": ", equals[[ii]], "\n", sep = "")
+        }
+      }
+      stop("Spectral density must be normalized:\n \t ", 
+           paste(errors[ind.errors], collapse = "\n \t ")) 
+    }
   }
 }
 
