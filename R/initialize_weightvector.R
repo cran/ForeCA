@@ -66,7 +66,7 @@ initialize_weightvector <- function(U = NULL, f.U = NULL,
     
     if (!is.null(U)) {
       # if U is provided it must be whitened
-      check_whitened(U)
+      U <- check_whitened(U)
     }
     
     method <- match.arg(method)

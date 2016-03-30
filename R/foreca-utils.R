@@ -131,7 +131,7 @@ plot.foreca <- function(x, lag = 10, alpha = 0.05, ...) {
   names(object$Omega.univ) <- gsub("Series ", "ForeC", names(object$Omega.univ))
   barplot(as.vector(object$Omega.univ), main = "Forecastability", 
           names.arg = names(object$Omega.univ), 
-          ylab = expression(hat(Omega.univ)(x[t]) ~ " (in %)"), 
+          ylab = expression(hat(Omega)(f[t]) ~ " (in %)"), 
           ylim = c(0, ylim.max))
   
   abline(h = object$Omega.univ[1], lty = 2, col = 4)

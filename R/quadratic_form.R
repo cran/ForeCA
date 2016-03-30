@@ -31,13 +31,7 @@ quadratic_form <- function(mat, vec) {
   stopifnot(dim.mat[1] == dim.mat[2])
   
   vec <- matrix(vec)
-  
-  if (nrow(vec) != dim.mat[1]) {
-    stop("Dimension of vector must match the matrix dimension.")
-  }
-  
-  qp <- c(t(vec) %*% mat %*% vec)
-  
+  qp <- crossprod(Conj(vec), crossprod(mat, vec))[1, 1]
   # convert to real if imaginary part is 0
   if (round(Im(qp), 6) == 0) {
     qp <- Re(qp)

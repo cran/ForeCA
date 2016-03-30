@@ -10,11 +10,6 @@
 #' @inheritParams common-arguments
 #' @param n.comp positive integer; number of components to be extracted. 
 #' Default: \code{2}.
-#' @param algorithm.type string; specifies the algorithm that should be 
-#' used to estimate forecastable components. 
-#' Currently only the 'EM'-like algorithm from the original Goerg (2013) paper is 
-#' available (see References): 
-#' \code{algorithm.type = "EM"} calls \code{\link{foreca.EM.one_weightvector}}.
 #' @param ... additional arguments passed to available ForeCA algorithms.
 #' 
 #' @return
@@ -88,8 +83,10 @@
 #' }
 #' 
 
-foreca <- function(series, n.comp = 2, algorithm.type = "EM", ...) {
+foreca <- function(series, n.comp = 2, algorithm.control = list(type = "EM"),
+                   ...) {
   
+  algorithm.control <- complete_algorithm_control(algorithm.control)
   series.name <- deparse(substitute(series))
   
   num.series <- ncol(series)
@@ -105,13 +102,14 @@ foreca <- function(series, n.comp = 2, algorithm.type = "EM", ...) {
   PW.all <- whiten(series)
   UU <- PW.all$U
   
-  if (algorithm.type == "EM"){
-    out <- foreca.multiple_weightvectors(UU, algorithm.type = algorithm.type, 
+  if (algorithm.control$type == "EM"){
+    out <- foreca.multiple_weightvectors(UU, 
+                                         algorithm.control = algorithm.control, 
                                          n.comp = n.comp, 
                                          dewhitening = PW.all$dewhitening, 
                                          ...)
   } else {
-    stop(paste("Algorithm type '", algorithm.type, "' is not implemented."))
+    stop("Algorithm type '", algorithm.control$type, "' is not implemented.")
   }
   out$weightvectors <- cbind(out$weightvectors)
   out$whitening <- PW.all$whitening
@@ -156,26 +154,28 @@ foreca <- function(series, n.comp = 2, algorithm.type = "EM", ...) {
 #' weightvector which corresponds to the series \eqn{\mathbf{X}_{t,i}} 
 #' with larges \code{\link{Omega}}.
 #' @examples
-#' #
+#'
 #' PW <- whiten(XX)
-#' one.weight <- foreca.one_weightvector(U = PW$U,
-#'                                       dewhitening = PW$dewhitening,
-#'                                       algorithm.control = 
-#'                                         list(num.starts = 1),
-#'                                       spectrum.control = 
-#'                                         list(method = 'pgram'))
-#' plot(one.weight)
+#' one.weight.em <- foreca.one_weightvector(U = PW$U,
+#'                                         dewhitening = PW$dewhitening,
+#'                                         algorithm.control = 
+#'                                           list(num.starts = 2,
+#'                                                type = "EM"),
+#'                                         spectrum.control = 
+#'                                           list(method = 'wosa'))
+#' plot(one.weight.em)
+#' 
 #' @export
 
 foreca.one_weightvector <- function(U, f.U = NULL, 
-                                    algorithm.type = "EM",
                                     spectrum.control = list(),
                                     entropy.control = list(),
                                     algorithm.control = list(),
                                     keep.all.optima = FALSE,
                                     dewhitening = NULL,
                                     ...) {
-  UU <- U
+  
+  UU <- check_whitened(U)
   num.series <- ncol(UU)
   num.obs <- nrow(UU)
   
@@ -183,14 +183,12 @@ foreca.one_weightvector <- function(U, f.U = NULL,
             num.obs > 1,
             num.series > 1,
             class(f.U) == "mvspectrum" || is.null(f.U),
-            is.character(algorithm.type))
+            is.logical(keep.all.optima))
   
   if (!is.null(dewhitening)) {
     stopifnot(is.matrix(dewhitening),
               num.series == nrow(dewhitening))
   }
-  
-  check_whitened(UU)
   
   if (!is.ts(UU)) {
     UU <- ts(UU)
@@ -297,11 +295,11 @@ foreca.one_weightvector <- function(U, f.U = NULL,
     Omega.init.tmp <- Omega(init.series, 
                             spectrum.control = spectrum.control,
                             entropy.control = entropy.control)
-    if (algorithm.type == "EM") {
+    if (algorithm.control$type == "EM") {
       one.results.tmp <- do.call(foreca.EM.one_weightvector, 
-                                 args.for.one_weightvector.algo)                        
+                                 args.for.one_weightvector.algo)
     } else {
-      stop("Algorithm '", algorithm.type, "' is not implemented.")
+      stop("Algorithm '", algorithm.control$type, "' is not implemented.")
     }
     Omega.tmp <- one.results.tmp$Omega
     if (keep.all.optima) {
@@ -344,11 +342,12 @@ foreca.one_weightvector <- function(U, f.U = NULL,
   rownames(out$weightvector) <- NULL
   
   out <- c(out,
-           list(score = UU %*% t(out$weightvector),
+           list(score = ts(UU %*% t(out$weightvector)),
                 Omega.init = Omega.init,
                 Omega = Omega.best,
                 best.f = 
                   spectrum_of_linear_combination(f.U, out$weightvector)))
+  out$score <- check_whitened(out$score, FALSE)
   out$best.f.univ <- c(mvspectrum(out$score,
                                   spectrum.control = spectrum.control,
                                   normalize = TRUE))
@@ -403,10 +402,10 @@ foreca.one_weightvector <- function(U, f.U = NULL,
 #' ff <- foreca.multiple_weightvectors(PW$U, n.comp = 2,
 #'                                     dewhitening = PW$dewhitening)
 #' ff
-#' plot(ts(ff$scores))
+#' plot(ff$scores)
 #' }
 
-foreca.multiple_weightvectors <- function(U, algorithm.type = "EM",
+foreca.multiple_weightvectors <- function(U,
                                           spectrum.control = list(),
                                           entropy.control = list(),
                                           algorithm.control = list(),
@@ -414,10 +413,10 @@ foreca.multiple_weightvectors <- function(U, algorithm.type = "EM",
                                           plot = FALSE,
                                           dewhitening = NULL,
                                           ...) {
-  UU <- U
-  check_whitened(UU)
   
-  stopifnot(is.character(algorithm.type))
+  UU <- U
+  UU <- check_whitened(UU)
+  
   num.series <- ncol(UU)
   num.obs <- nrow(UU)
   # if multiple methods are specified (default), it uses the first [1] by default
@@ -445,6 +444,7 @@ foreca.multiple_weightvectors <- function(U, algorithm.type = "EM",
   null.space <- diag(1, num.series)
   for (comp.id in seq_len(n.comp)) {
     UU.in.null <- as.matrix(UU) %*% null.space
+    attr(UU.in.null, "whitened") <- TRUE
     if (is.null(dewhitening)) {
       dewhitening.tmp <- NULL
     } else {
@@ -466,7 +466,6 @@ foreca.multiple_weightvectors <- function(U, algorithm.type = "EM",
       # This is the actual algorithm that obtains the new w*
       opt.wv <- foreca.one_weightvector(U = UU.in.null,
                                         f.U = NULL,
-                                        algorithm.type = algorithm.type,
                                         spectrum.control = spectrum.control,
                                         entropy.control = entropy.control,
                                         algorithm.control = algorithm.control,
@@ -503,6 +502,7 @@ foreca.multiple_weightvectors <- function(U, algorithm.type = "EM",
     out$h <- out$h[omega.order]
   }
   colnames(out$scores) <- paste0("ForeC", seq_len(ncol(out$scores)))
+  out$scores <- ts(out$scores)
   class(out$weightvectors) <- "loadings"
   names(out$Omega) <- colnames(out$scores)
   

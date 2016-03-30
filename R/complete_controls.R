@@ -34,7 +34,7 @@ NULL
 complete_algorithm_control <- function(algorithm.control = 
                                          list(max.iter = 50,
                                               num.starts = 10,
-                                              tol = 1e-6,
+                                              tol = 1e-3,
                                               type = 'EM')) {
   stopifnot(inherits(algorithm.control, "list"))
   

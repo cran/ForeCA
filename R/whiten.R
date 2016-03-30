@@ -21,7 +21,7 @@
 #' \code{K} variables.
 #' @return 
 #' \code{whiten} returns a list with the whitened data, the transformation, 
-#' and other useful quantities
+#' and other useful quantities.
 #' @references
 #' See appendix in \url{www.cs.toronto.edu/~kriz/learning-features-2009-TR.pdf}.
 #' 
@@ -73,6 +73,7 @@ whiten <- function(data) {
   if (num.series == 1) {
     out$U <- c(out$U)  
   }
+  attr(out$U, "whitened") <- TRUE
   return(out)
 } 
 
@@ -82,48 +83,75 @@ whiten <- function(data) {
 #' \code{check_whitened} checks if data has been whitened; i.e., if it has
 #' zero mean, unit variance, and is uncorrelated.
 #' @inheritParams whiten
+#' @inheritParams mvspectrum
 #' @return
-#' \code{check_whitened} throws an error if the input is not \code{\link{whiten}}ed.
+#' \code{check_whitened} throws an error if the input is not 
+#' \code{\link{whiten}}ed, and returns (invisibly) the data with an attribute \code{'whitened'} 
+#' equal to \code{TRUE}.  This allows to simply update data to have the
+#' attribute and thus only check it once on the actual data (slow) but then 
+#' use the attribute lookup (fast).
 
-check_whitened <- function(data) {
-  
-  if (is.null(dim(data))) {
-    num.vars <- 1
-    data <- cbind(data)
-  } else {
-    num.vars <- ncol(data)
-  }  
-  center <- colMeans(data)
-  sd.data <- apply(data, 2, sd)
-  
-  equals <- list()
-  equals[["zero-mean"]] <- all.equal(target = rep(0, num.vars), 
-                                     current = center,
-                                     check.names = FALSE,
-                                     check.attributes = FALSE)
-  equals[["unit-variance"]] <- all.equal(target = rep(1, num.vars), 
-                                         current = sd.data,
-                                         check.names = FALSE,
-                                         check.attributes = FALSE)
-  equals[["uncorrelated"]] <- all.equal(target = diag(1, num.vars),
-                                        current = cor(data),
-                                        check.names = FALSE,
-                                        check.attributes = FALSE)
-  
-  errors <- c("zero-mean" = "Each variable must have mean 0.",
-              "unit-variance" = "Each variable must have variance 1.",
-              "uncorrelated" = "Data must be uncorrelated.")
-  
-  ind.errors <- !sapply(equals, isTRUE)  
-  if (any(ind.errors) > 0) {
-    for (ii in seq_along(ind.errors)) {
-      if (ind.errors[ii]) {
-        cat(names(equals)[ii], ": ", equals[[ii]], "\n", sep = "")
-      }
+check_whitened <- function(data, check.attribute.only = TRUE) {
+  if (is.null(attr(data, "whitened"))) {
+    if (check.attribute.only) {
+      warning("Cannot check if data is whitened in fast way, since ", 
+              deparse(substitute(data)), " does not have a 'whitened' ",
+              "attribute. Continuing with data-driven checks.")
+      check.attribute.only <- FALSE
     }
-    stop("Data must be whitened:\n \t ", 
-         paste(errors[ind.errors], collapse = "\n \t "))
   }
+  
+  if (check.attribute.only) {
+    stopifnot(isTRUE(attr(data, "whitened")))
+    invisible(data)
+  }
+  if (is.null(attr(data, "whitened"))) {
+    if (is.null(dim(data))) {
+      num.vars <- 1
+      data <- cbind(data)
+    } else {
+      num.vars <- ncol(data)
+    }  
+    center <- colMeans(data)
+    sd.data <- apply(data, 2, sd)
+    
+    equals <- list()
+    equals[["zero-mean"]] <- all.equal(target = rep(0, num.vars), 
+                                       current = center,
+                                       check.names = FALSE,
+                                       check.attributes = FALSE)
+    equals[["unit-variance"]] <- all.equal(target = rep(1, num.vars), 
+                                           current = sd.data,
+                                           check.names = FALSE,
+                                           check.attributes = FALSE)
+    equals[["uncorrelated"]] <- all.equal(target = diag(1, num.vars),
+                                          current = cor(data),
+                                          check.names = FALSE,
+                                          check.attributes = FALSE)
+    
+    errors <- c("zero-mean" = "Each variable must have mean 0.",
+                "unit-variance" = "Each variable must have variance 1.",
+                "uncorrelated" = "Data must be uncorrelated.")
+    
+    ind.errors <- !sapply(equals, isTRUE)  
+    if (any(ind.errors) > 0) {
+      for (ii in seq_along(ind.errors)) {
+        if (ind.errors[ii]) {
+          cat(names(equals)[ii], ": ", equals[[ii]], "\n", sep = "")
+        }
+      }
+      stop("Data must be whitened:\n \t ", 
+           paste(errors[ind.errors], collapse = "\n \t "))
+    }
+  } else {
+    if (!isTRUE(attr(data, "whitened"))) {
+      stop("Attribute 'whitened' says the data is not whitened. Please",
+           "run whiten() beforehand.  To find out why the data is not",
+           "whitened, run check_whitened(..., check.attribute.only = FALSE).")
+    }
+  }
+  attr(data, "whitened") <- TRUE  
+  invisible(data)
 }
 
 #' @rdname whiten
@@ -175,7 +203,7 @@ sqrt_matrix <- function(mat, return.sqrt.only = TRUE, symmetric = FALSE) {
   
   mat.eig <- eigen(mat, symmetric = symmetric)
   
-  lambdas <- mat.eig$values
+  lambdas <- round(mat.eig$values, 10)
   if (all.equal(rep(0, length(lambdas)), Im(lambdas))) {
     lambdas <- Re(lambdas)
     if (any(lambdas < 0)) {
@@ -183,8 +211,12 @@ sqrt_matrix <- function(mat, return.sqrt.only = TRUE, symmetric = FALSE) {
     } 
   }
   
-  if (any(lambdas == 0) || any(lambdas == 0 + 1i * 0)) {
-    warning("The matrix does not have full rank; some eigenvalues are 0.")
+  is.full.rank <- TRUE
+  num.zero.values <- length(lambdas) - sum(abs(lambdas) > 0.0)
+  if (num.zero.values > 0) {
+    is.full.rank <- FALSE
+    warning("The matrix does not have full rank (= ", length(lambdas), "):",
+            num.zero.values, " eigenvalue(s) equal 0.")
   }
   
   if (length(lambdas) > 1) {
@@ -197,6 +229,9 @@ sqrt_matrix <- function(mat, return.sqrt.only = TRUE, symmetric = FALSE) {
   if (return.sqrt.only) {
     return(sqrt.mat)
   } else {
+    if (!is.full.rank) {
+      stop("Exact inverse matrix can only be computed for full rank matrices.")
+    }
     diag(diag.mat) <- 1 / diag(diag.mat)
     sqrt.mat.inverse <- mat.eig$vector %*% diag.mat %*% t(mat.eig$vector)
     out <- list(values = lambdas,

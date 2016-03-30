@@ -83,18 +83,16 @@ spectral_entropy <- function(series = NULL, spectrum.control = list(),
               length(dim(mvspectrum.output)) >= 0)
 
   if (is.null(mvspectrum.output)) {
-
     series <- as.matrix(series)
-    num.series <- ncol(series)
-    is.whitened <- (identical(cov(series), diag(1, num.series)) && 
+    is.whitened <- (isTRUE(all.equal(cov(series), diag(1, ncol(series)))) && 
                       isTRUE(all.equal(colMeans(series), 0)))
-    #cat("Computing mvspectrum in spectral_entropy with normalize = ", 
-    #    paste(is.whitened), "\n")
+    attr(series, "whitened") <- is.whitened
+    num.series <- ncol(series)
     spectrum.control <- complete_spectrum_control(spectrum.control)
     mvspectrum.output <- mvspectrum(series, 
                                     method = spectrum.control$method, 
                                     smoothing = spectrum.control$smoothing,
-                                    normalize = is.whitened,
+                                    normalize = attr(series, "whitened"),
                                     ...)
   }
   if (is.null(dim(mvspectrum.output))) {
@@ -120,9 +118,6 @@ spectral_entropy <- function(series = NULL, spectrum.control = list(),
     spec.dens <- c(rev(c(mvspectrum.output)), c(mvspectrum.output))
     spec.dens[spec.dens < 0] <- 0
     spec.dens <- spec.dens / sum(spec.dens)
-    #cat("spectral_entropy produces normalized:\n")
-    #print(spec.dens)
-    #cat("with sum =", sum(spec.dens), "\n")
     spec.ent <- do.call("discrete_entropy", 
                         c(list(probs = spec.dens), entropy.control))
   }

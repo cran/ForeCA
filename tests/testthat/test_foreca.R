@@ -6,9 +6,10 @@ kNumObs <- 200
 kSeries <- matrix(arima.sim(n = kNumObs * kNumVariables, list(ar = -0.7)), 
                   ncol = kNumVariables)
 kSeries[, 1] <- cumsum(kSeries[, 1])
+kSeries <- ts(kSeries)
 # rotate series to have non-trivial correlations
 kMixing <- matrix(rnorm(kNumVariables^2), ncol = kNumVariables)
-kSeries <- kSeries %*% kMixing
+kSeries <- ts(kSeries %*% kMixing)
 
 kSeriesCentered <- sweep(kSeries, 2, colMeans(kSeries), "-")
 
@@ -16,7 +17,7 @@ UU <- whiten(kSeries)$U
 ww0 <- initialize_weightvector(UU, method = "rnorm")
 
 yy.UU <- UU %*% t(ww0)
-yy.Series <- kSeries %*% t(ww0)
+yy.Series <- ts(kSeries %*% t(ww0))
 
 context("Foreca: one weightvector")
 
@@ -25,6 +26,11 @@ test_that("only accepts whitened input", {
           })
 
 one.weight <- foreca.one_weightvector(U = UU)
+
+test_that("Algorithm is not implemented", {
+  expect_error(foreca(XX, n.comp = 1, algorithm.type = "foo"))
+})
+
 
 test_that("weightvector has norm 1", {
   expect_equal(base::norm(one.weight$weightvector, "2"), 1)
@@ -45,11 +51,7 @@ test_that("Omega from best.f spectrum matches reported Omega estimate", {
 })
 
 test_that("score is computed correctly with weightvector", {
-  expect_equal(UU %*% t(one.weight$weightvector), one.weight$score)
-})
-
-test_that("ForeC score has an Omega at least as large as any input", {
-  expect_true(all(one.weight$Omega >= one.weight$Omega.series))
+  expect_equivalent(ts(UU %*% t(one.weight$weightvector)), one.weight$score)
 })
 
 test_that("score has 0 mean and variance 1", {
@@ -90,9 +92,7 @@ test_that("it returns correct number of ForeCs", {
 })
 
 test_that("ForeCs are whitened", {
-  tmp <- try(check_whitened(mult.weights$scores),
-             silent = TRUE)
-  expect_false(inherits(tmp, "try-error"))
+  expect_silent(check_whitened(mult.weights$scores, FALSE))
 })
 
 names(mult.weights$Omega) <- NULL
@@ -100,11 +100,13 @@ test_that("ForeCs are sorted by Omega", {
   expect_equal(kNComp:1, rank(mult.weights$Omega))
 })
 
-test_that("ForeCs scores and the weightvectors match", {
-  expect_true(isTRUE(all.equal(mult.weights$scores, 
-                               UU %*% WW,
-                               check.names = FALSE,
-                               check.attributes = FALSE)))
+test_that("ForeC 1 Omega is greater or equal to all input series", {
+  expect_true(all(mult.weights$Omega[1] >= mult.weights$Omega.series))
+})
+
+test_that("ForeCs scores and series * weightvectors match", {
+  expect_equivalent(mult.weights$scores, 
+                    ts(UU %*% WW))
 })
 
 
@@ -125,6 +127,6 @@ test_that("loadings have correct names", {
 })
 
 test_that("loadings correctly compute the scores from original series", {
-  sl <- scale(kSeries, scale = FALSE) %*% mod.foreca$loadings
+  sl <- ts(scale(kSeries, scale = FALSE) %*% mod.foreca$loadings)
   expect_equal(sl, mod.foreca$scores)
 })

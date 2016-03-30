@@ -1,5 +1,17 @@
 # Update history of ForeCA
 
+## v0.2.4 (April 2016)
+
+### New
+
+- added an introductory R markdown vignette using **knitr**
+
+### Bug fixes
+
+- `quadratic_form` now computes the vector product with the transpose _and_ 
+  conjugate of the vector, i.e., the Hermitian of the vector. Also added small speed up using `crossprod` function.
+- `sqrt_matrix` did not work correctly for singular matrices (zero eigenvalue). Fixed issue with numerical precision errors testing for equality to zero. Now throws an error if matrix is not of full rank and the inverse is required.
+
 ## v0.2.2 (April 2015)
 
 ### New

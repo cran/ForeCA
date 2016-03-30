@@ -89,9 +89,9 @@ mvspectrum <- function(series,
   }
   
   if (normalize) {
-    # if the data is not uncorrelated and has unit variance, 
+    # if the data is not uncorrelated with unit variance, 
     # then dont allow to normalize
-    check_whitened(series)
+    series <- check_whitened(series)
   }
   
   if (method == "mvspec") {

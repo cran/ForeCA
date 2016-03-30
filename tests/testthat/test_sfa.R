@@ -35,9 +35,11 @@ test_that("sfa() returns signals in increasing order", {
 
 test_that("sfa() returns orthonormal signals with mean 0", {
   expect_equal(cov(sfa.est$scores), 
-               diag(1, kNumVariables))
+               diag(1, kNumVariables),
+               tol = 1e-5)
   expect_equal(colMeans(sfa.est$scores),
-               rep(0, kNumVariables))
+               rep(0, kNumVariables),
+               tol = 1e-5)
 })
 
 

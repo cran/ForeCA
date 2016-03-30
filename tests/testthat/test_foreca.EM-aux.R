@@ -10,6 +10,8 @@ UU <- whiten(kSeries)$U
 
 ww0 <- initialize_weightvector(num.series = ncol(UU), method = 'rnorm')
 yy.UU <- UU %*% t(ww0)
+attr(yy.UU, "whitened") <- TRUE
+
 yy.Series <- kSeries %*% t(ww0)
 
 kSpectrumMethods <- c("direct", "wosa", "multitaper", "mvspec", "pgram")
@@ -39,10 +41,9 @@ for (mm in kSpectrumMethods) {
     # check that combination has same spectrum as yy
     # same for center vs non-centered data
     avg.spec <- mean(spec.UU.e_step)
-    expect_more_than(cor(log(spec.UU.e_step + avg.spec), 
-                         log(spec.yy.UU + avg.spec)),
-                     0.8,
-                     info = test.msg)
+    expect_gt(cor(log(spec.UU.e_step + avg.spec), 
+                      log(spec.yy.UU + avg.spec)),
+              0.8)#, info = test.msg)
   })
 }
 
@@ -99,17 +100,15 @@ for (mm in kSpectrumMethods) {
   spec.yy.0 <- foreca.EM.E_step(spec.UU, ww0)
   
   test_that("h and Omega add up to 1", {
-    expect_true(isTRUE(all.equal(target = 1, 
-                                 current = Omega(mvspectrum.output = spec.yy.0) / 100 + 
-                                   foreca.EM.h(ww0, spec.UU),
-                                 check.names = FALSE,
-                                 check.attributes = FALSE,
-                                 tol = 1e-2)),
-                info = test.msg)
-    
+    expect_equal(object = Omega(mvspectrum.output = spec.yy.0) / 100 + 
+                    foreca.EM.h(ww0, spec.UU),
+                 expected = 1,
+                 check.names = FALSE,
+                 check.attributes = FALSE,
+                 tol = 1e-3,
+                 info = test.msg)
   })
-  
-  
+
   spec.ent.yy.0 <- foreca.EM.h(ww0, spec.UU)
   one.step <- foreca.EM.M_step(spec.UU, spec.yy.0, 
                                entropy.control = list(prior.weight = 0))
@@ -128,15 +127,15 @@ for (mm in kSpectrumMethods) {
   })  
   
   test_that("M-step minimizes entropy bound via eigen value inequality", {
-    expect_less_than(object = spec.ent.bound.yy.1, # min eigenvalue inequality
-                     expected = spec.ent.yy.0,  # iteration 0
-                     info = test.msg)
+    expect_lt(object = spec.ent.bound.yy.1, # min eigenvalue inequality
+              expected = spec.ent.yy.0)#,  # iteration 0
+              # info = test.msg)
   })
   
   test_that("One more minimization via KL divergence inequality", {
-    expect_less_than(object = spec.ent.yy.1,# KL divergence inequality
-                     expected = spec.ent.bound.yy.1,  # iteration 0
-                     info = test.msg)
+    expect_lt(object = spec.ent.yy.1,# KL divergence inequality
+              expected = spec.ent.bound.yy.1)#,  # iteration 0
+              # info = test.msg)
   })  
 }
 

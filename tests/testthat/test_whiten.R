@@ -14,6 +14,8 @@ test_that("whiten has the right names", {
                c("center", "scale", "values", "whitening", "dewhitening", "U"))
   expect_equal(names(whiten(whitening.result$U)), 
                c("center", "scale", "values", "whitening", "dewhitening", "U"))
+  expect_true(attr(whitening.result$U, "whitened"),
+              info = "whitened attributed is TRUE")
 })
 
 test_that("whiten does indeed give identity covariance matrix", {
@@ -64,27 +66,29 @@ context("Testing check_whitened function")
 
 test_that("check_whitened returns error for non-zero mean input", {
   # must have 0 mean
-  expect_error(check_whitened(kSeries))
+  expect_error(check_whitened(kSeries, FALSE))
 })
 
 test_that("check_whitened returns error for not unit variance input", {
   # must have unit variance
-  expect_error(check_whitened(scale(kSeries, scale = FALSE)))
+  expect_error(check_whitened(scale(kSeries, scale = FALSE), FALSE))
 })
 
 test_that("check_whitened returns error for correlated input", {
   # must have 0 mean
-  expect_error(check_whitened(scale(kSeries, scale = TRUE)))
+  expect_error(check_whitened(scale(kSeries, scale = TRUE), FALSE))
 })
 
 test_that("check_whitened returns does nothing for whitened input", {
-  # must have 0 mean
-  check_whitened(whiten(kSeries)$U)
+  expect_silent(check_whitened(whiten(kSeries)$U))
+  expect_silent(check_whitened(whiten(kSeries)$U, FALSE))
 })
 
 test_that("check_whitened also works for univariate input", {
-  # must have 0 mean
-  check_whitened(whiten(kSeries)$U[, 1])
+  univ.u <- whiten(kSeries)$U[, 1]
+  expect_silent(check_whitened(univ.u, FALSE))
+  attr(univ.u, "whitened") <- TRUE
+  expect_silent(check_whitened(univ.u, TRUE))
 })
 
 

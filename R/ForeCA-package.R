@@ -15,6 +15,7 @@
 #' Please consult the \code{NEWS} file for a list of changes to previous
 #' versions of this package.
 #' 
+#' @import MASS stats graphics reshape2 utils
 #' @name ForeCA-package
 #' @aliases ForeCA-package ForeCA
 #' @docType package

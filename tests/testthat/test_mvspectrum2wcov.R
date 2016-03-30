@@ -74,9 +74,8 @@ for (mm in kMvspectrumMethods) {
                                        entropy.control = ec.tmp)
   
   test_that("prior spectral entropy is larger than normal spectral entropy", {
-    expect_more_than(yy.entropy.prior, 
-                     yy.entropy.direct,
-                     info = test.msg)
+    expect_true(yy.entropy.prior > yy.entropy.direct,
+                info = test.msg)
   })
   
   yy.entropy.by.int.prior <- quadratic_form(int.mvspec.prior, ww.tmp)

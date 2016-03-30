@@ -91,10 +91,13 @@ Omega <- function(series = NULL,
   
   if (num.series > 1) {
     stopifnot(is.null(mvspectrum.output))
-    OMEGAs <- apply(series, 2, Omega, 
-                    spectrum.control = spectrum.control, 
-                    entropy.control = entropy.control, 
-                    mvspectrum.output = mvspectrum.output)
+    OMEGAs <- apply(series, 2, 
+                    function(x) {
+                      attr(x, "whitened") <- attr(series, "whitened")
+                      Omega(x, spectrum.control = spectrum.control, 
+                            entropy.control = entropy.control, 
+                            mvspectrum.output = mvspectrum.output)
+                    })
     attr(OMEGAs, "unit") <- "%"
     return(OMEGAs)
   } else {
