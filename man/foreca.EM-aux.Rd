@@ -2,9 +2,9 @@
 % Please edit documentation in R/foreca.EM-aux.R
 \name{foreca.EM-aux}
 \alias{foreca.EM-aux}
-\alias{foreca.EM.E_and_M_step}
 \alias{foreca.EM.E_step}
 \alias{foreca.EM.M_step}
+\alias{foreca.EM.E_and_M_step}
 \alias{foreca.EM.h}
 \title{ForeCA EM auxiliary functions}
 \usage{
@@ -12,11 +12,21 @@ foreca.EM.E_step(f.U, weightvector)
 
 foreca.EM.M_step(f.U, f.current, minimize = TRUE, entropy.control = list())
 
-foreca.EM.E_and_M_step(weightvector, f.U, minimize = TRUE,
-  entropy.control = list())
+foreca.EM.E_and_M_step(
+  weightvector,
+  f.U,
+  minimize = TRUE,
+  entropy.control = list()
+)
 
-foreca.EM.h(weightvector.new, f.U, weightvector.current = weightvector.new,
-  f.current = NULL, entropy.control = list(), return.negative = FALSE)
+foreca.EM.h(
+  weightvector.new,
+  f.U,
+  weightvector.current = weightvector.new,
+  f.current = NULL,
+  entropy.control = list(),
+  return.negative = FALSE
+)
 }
 \arguments{
 \item{f.U}{multivariate spectrum of class \code{'mvspectrum'} with 
@@ -148,4 +158,3 @@ Omega(mvspectrum.output = f.ww1) / 100 + foreca.EM.h(ww1, ff)
 }
 \keyword{manip}
 \keyword{math}
-

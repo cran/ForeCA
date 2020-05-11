@@ -101,12 +101,13 @@ test_that("ForeCs are sorted by Omega", {
 })
 
 test_that("ForeC 1 Omega is greater or equal to all input series", {
-  expect_true(all(mult.weights$Omega[1] >= mult.weights$Omega.series))
+  for (ii in 1:length(mult.weights$Omega.univ)) {
+    expect_gt(mult.weights$Omega[1], mult.weights$Omega.univ[ii])
+  }
 })
 
 test_that("ForeCs scores and series * weightvectors match", {
-  expect_equivalent(mult.weights$scores, 
-                    ts(UU %*% WW))
+  expect_equivalent(mult.weights$scores, ts(UU %*% WW))
 })
 
 

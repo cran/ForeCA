@@ -40,14 +40,11 @@ test_that("Max is actually max Omega", {
 test_that("SFA gives slowest/fastest AR(1) signal: initialize_weightvector", {
   ww.tmp <- initialize_weightvector(U = kWhitened, f.U = f.U.tmp, method = "SFA.slow")
   # the first signal is the positive lag 1 autocorrelation AR(1)
-  expect_equal(which.max(abs(ww.tmp)), 1,
-               info = test.msg)
+  expect_equal(which.max(abs(ww.tmp)), 1, info = test.msg)
   ww.tmp <- initialize_weightvector(U = kWhitened, f.U = f.U.tmp, method = "SFA.fast")
   # the fastest signal is the negative lag 1 autocorrelation AR(1)
-  expect_equal(which.max(abs(ww.tmp)), 2,
-               info = test.msg)
+  expect_equal(which.max(abs(ww.tmp)), 2, info = test.msg)
   ww.tmp <- initialize_weightvector(U = kWhitened, f.U = f.U.tmp, method = "SFA")
   # the first signal is more forecastable than the 2nd one (0.9 vs -0.5 lag 1 autocorrelation)
-  expect_equal(which.max(abs(ww.tmp)), 1,
-               info = test.msg)
+  expect_equal(which.max(abs(ww.tmp)), 1, info = test.msg)
 })

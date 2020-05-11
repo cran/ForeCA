@@ -4,10 +4,15 @@
 \alias{foreca.EM.one_weightvector}
 \title{EM-like algorithm to estimate optimal ForeCA transformation}
 \usage{
-foreca.EM.one_weightvector(U, f.U = NULL, spectrum.control = list(),
-  entropy.control = list(), algorithm.control = list(),
-  init.weightvector = initialize_weightvector(num.series = ncol(U), method =
-  "rnorm"), ...)
+foreca.EM.one_weightvector(
+  U,
+  f.U = NULL,
+  spectrum.control = list(),
+  entropy.control = list(),
+  algorithm.control = list(),
+  init.weightvector = initialize_weightvector(num.series = ncol(U), method = "rnorm"),
+  ...
+)
 }
 \arguments{
 \item{U}{a \eqn{T \times K} array with \code{T} observations from the 
@@ -28,7 +33,7 @@ See \code{\link{complete_entropy_control}} for details.}
 algorithm. See \code{\link{complete_algorithm_control}} for details.}
 
 \item{init.weightvector}{numeric; starting point \eqn{\mathbf{w}_0} for several
-iterative algorithms.  By default it uses a (normalized) random vector from a 
+iterative algorithms.  By default it uses a (normalized) random vector from a
 standard Normal distribution (see \code{\link{initialize_weightvector}}).}
 
 \item{...}{other arguments passed to \code{\link{mvspectrum}}}
@@ -38,23 +43,18 @@ A list with useful quantities like the optimal weighvector, the corresponding
 signal, and its forecastability.
 }
 \description{
-\code{foreca.EM.one_weightvector} finds the optimal weightvector \eqn{\mathbf{w}^*} 
-that gives the most forecastable signal \eqn{y_t^* = \mathbf{U}_t \mathbf{w}^*} 
+\code{foreca.EM.one_weightvector} finds the optimal weightvector \eqn{\mathbf{w}^*}
+that gives the most forecastable signal \eqn{y_t^* = \mathbf{U}_t \mathbf{w}^*}
 using an EM-like algorithm (see References).
 }
 \examples{
 \dontrun{
 XX <- diff(log(EuStockMarkets)[100:200,]) * 100
-one.weight <- foreca.EM.one_weightvector(whiten(XX)$U, 
-                                         spectrum.control = 
+one.weight <- foreca.EM.one_weightvector(whiten(XX)$U,
+                                         spectrum.control =
                                             list(method = "wosa"))
 }
 
-}
-\references{
-Goerg, G. M. (2013). \dQuote{Forecastable Component Analysis}. 
-Journal of Machine Learning Research (JMLR) W&CP 28 (2): 64-72, 2013.
-Available at \url{jmlr.org/proceedings/papers/v28/goerg13.html}.
 }
 \seealso{
 \code{\link{foreca.one_weightvector}}, \code{\link{foreca.EM-aux}}
@@ -62,4 +62,3 @@ Available at \url{jmlr.org/proceedings/papers/v28/goerg13.html}.
 \keyword{iteration}
 \keyword{manip}
 \keyword{optimize}
-

@@ -1,4 +1,9 @@
-# Update history of ForeCA
+# ForeCA Release Notes
+
+## v0.2.5 (May 2020)
+
+* make `ForeCA` compatible with R 4.0.0
+* improve test coverage and error messages (move away from `expect_true` wherever possible)
 
 ## v0.2.4 (April 2016)
 

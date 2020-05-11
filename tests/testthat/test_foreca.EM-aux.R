@@ -32,9 +32,10 @@ for (mm in kSpectrumMethods) {
   spec.yy.UU <- mvspectrum(yy.UU, method = mm, normalize = TRUE)
   
   test_that("E-step returns normalized spectrum", {
-    expect_true(all(spec.UU.e_step >= 0))
-    expect_equal(sum(spec.UU.e_step), expected = 0.5,
-                 info = test.msg)
+    for (se in spec.UU.e_step) {
+      expect_gte(se, 0)
+    }
+    expect_equal(sum(spec.UU.e_step), 0.5, info = test.msg)
   })
   
   test_that("E-step computes correct linear combination spectrum", {
@@ -43,7 +44,7 @@ for (mm in kSpectrumMethods) {
     avg.spec <- mean(spec.UU.e_step)
     expect_gt(cor(log(spec.UU.e_step + avg.spec), 
                       log(spec.yy.UU + avg.spec)),
-              0.8)#, info = test.msg)
+              0.8)
   })
 }
 
@@ -62,17 +63,14 @@ for (mm in kSpectrumMethods) {
     expect_equal(1, base::norm(max.val$vector, "2"),
                  info = test.msg)
     # pos eigenvalue
-    expect_true(min.val$value > 0,
-                info = test.msg)
-    expect_true(max.val$value > 0,
-                info = test.msg)
+    expect_gt(min.val$value, 0, label = test.msg)
+    expect_gt(max.val$value, 0, label = test.msg)
     
     ww1 <- min.val$vector
     yy.1 <- UU %*% ww1
     spec.yy.1 <- foreca.EM.E_step(spec.UU, ww1)
-    expect_true(Omega(mvspectrum.output = spec.yy.0) <= 
-                  Omega(mvspectrum.output = spec.yy.1),
-                info = test.msg)
+    expect_lte(Omega(mvspectrum.output = spec.yy.0), Omega(mvspectrum.output = spec.yy.1),
+               label = test.msg)
   })
 }
 

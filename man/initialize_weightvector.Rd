@@ -4,9 +4,15 @@
 \alias{initialize_weightvector}
 \title{Initialize weightvector for iterative ForeCA algorithms}
 \usage{
-initialize_weightvector(U = NULL, f.U = NULL, num.series = ncol(U),
-  method = c("rnorm", "max", "SFA", "PCA", "rcauchy", "runif", "SFA.slow",
-  "SFA.fast", "PCA.large", "PCA.small"), seed = sample(1e+06, 1), ...)
+initialize_weightvector(
+  U = NULL,
+  f.U = NULL,
+  num.series = ncol(U),
+  method = c("rnorm", "max", "SFA", "PCA", "rcauchy", "runif", "SFA.slow", "SFA.fast",
+    "PCA.large", "PCA.small"),
+  seed = sample(1e+06, 1),
+  ...
+)
 }
 \arguments{
 \item{U}{a \eqn{T \times K} array with \code{T} observations from the 
@@ -74,4 +80,3 @@ initialize_weightvector(U = XX, method = "SFA")
 initialize_weightvector(num.series = ncol(XX), method = "rnorm")
 }
 \keyword{manip}
-

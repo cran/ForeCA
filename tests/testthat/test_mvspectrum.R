@@ -206,14 +206,12 @@ for (mm in kMvspectrumMethods) {
                  info = test.msg)
   })
   
-  #test_that("normalize gives a matrix that is cov(X) / 2 for non-whitened data", {
-  #  norm.spec.Series <- normalize_mvspectrum(spec.Series, 
-  #                                           Sigma.X = cov(kSeries))
-  #  sum.norm.spec.Series <- apply(norm.spec.Series, 2:3, sum)
-  #  sum.norm.spec.Series <- 2 * Re(sum.norm.spec.Series)
-  #  expect_true(cor(c(cov(kSeries)), c(sum.norm.spec.Series)) > 0.95,
-  #              info = test.msg)
-  #})
+  test_that("normalize gives a matrix that is cov(X) / 2 for non-whitened data", {
+    norm.spec.Series <- normalize_mvspectrum(spec.Series)
+    sum.norm.spec.Series <- apply(norm.spec.Series, 2:3, sum)
+    sum.norm.spec.Series <- 2 * Re(sum.norm.spec.Series)
+    expect_gt(cor(c(cov(kSeries)), c(sum.norm.spec.Series)), 0.5, label = test.msg)
+  })
   
   test_that("normalize makes it add up to 0.5", {
     norm.spec.yy.2 <- mvspectrum(scale(kSeries[, 2]), 
@@ -290,14 +288,6 @@ for (mm in kMvspectrumMethods) {
                                                        beta.tmp)
     expect_equal(0.5, sum(spec.Series.comb))
     spec.yy <- mvspectrum(yy.tmp, method = mm, normalize = TRUE)
-    
-    #layout(matrix(1:4, ncol = 2))
-    #matplot(cbind(spec.Series.comb, spec.yy))
-    #plot(spec.Series.comb, spec.yy)
-    #plot(log(spec.Series.comb + median(spec.yy)), log(spec.yy + median(spec.yy)))
-    expect_true(cor(spec.Series.comb, spec.yy) > 0.95,
-                info = test.msg)
+    expect_gt(cor(spec.Series.comb, spec.yy), 0.95, label = test.msg)
   })
-
-  
 }

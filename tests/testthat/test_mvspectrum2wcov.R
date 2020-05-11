@@ -9,8 +9,8 @@ for (mm in kMvspectrumMethods) {
   
   test_that("mvspectrum2wcov does actually compute the cov(X)", {
     # check difference of matrices (use inverse covariance matrix to put them on comparable scale)
-    expect_true(base::norm(solve(Sigma, sigma.hat.freq - Sigma), "2") < 0.05,
-                info = test.msg)
+    expect_lt(base::norm(solve(Sigma, sigma.hat.freq - Sigma), "2"), 0.05,
+              label = test.msg)
   })
   
   test_that("it is symmetric for any weights (positive or negative); positive definite for pos weights", {
@@ -74,15 +74,15 @@ for (mm in kMvspectrumMethods) {
                                        entropy.control = ec.tmp)
   
   test_that("prior spectral entropy is larger than normal spectral entropy", {
-    expect_true(yy.entropy.prior > yy.entropy.direct,
-                info = test.msg)
+    expect_gt(yy.entropy.prior, yy.entropy.direct, label = test.msg)
   })
   
   yy.entropy.by.int.prior <- quadratic_form(int.mvspec.prior, ww.tmp)
   
-  # test_that("spectral entropy by direct estimation is the same as by quadratic form on integrated mvspectrum", {
-  #  expect_equal(yy.entropy.by.int.prior,
-  #               as.numeric(yy.entropy.prior),
-  #               info = test.msg)
-  #})
+  test_that("spectral entropy by direct estimation is the same as by quadratic form on integrated mvspectrum", {
+    expect_equal(yy.entropy.by.int.prior,
+                 as.numeric(yy.entropy.prior),
+                 tolerance = 0.01, scale = 1,
+                 info = test.msg)
+  })
 }

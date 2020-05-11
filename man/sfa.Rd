@@ -64,4 +64,3 @@ Neural Computation 14:4, 715-770.
 \seealso{
 \code{\link{initialize_weightvector}}
 }
-

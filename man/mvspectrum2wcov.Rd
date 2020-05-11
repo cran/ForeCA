@@ -7,8 +7,12 @@
 \usage{
 mvspectrum2wcov(mvspectrum.output, kernel.weights = 1)
 
-weightvector2entropy_wcov(weightvector = NULL, f.U, f.current = NULL,
-  entropy.control = list())
+weightvector2entropy_wcov(
+  weightvector = NULL,
+  f.U,
+  f.current = NULL,
+  entropy.control = list()
+)
 }
 \arguments{
 \item{mvspectrum.output}{an object of class \code{"mvspectrum"} representing
@@ -108,4 +112,3 @@ weightvector2entropy_wcov(ww0, ff,
 \code{\link{mvspectrum}}
 }
 \keyword{ts}
-

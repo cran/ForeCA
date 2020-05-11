@@ -1,10 +1,13 @@
 Package: ForeCA
 Type: Package
 Title: Forecastable Component Analysis
-Version: 0.2.4
-Date: 2016-03-01
-Author: Georg M. Goerg <im@gmge.org>
-Maintainer: Georg M. Goerg <im@gmge.org>
+Version: 0.2.6
+Date: 2020-05-08
+Authors@R: 
+    person(given = "Georg M.",
+           family = "Goerg",
+           role = c("aut", "cre"),
+           email = "im@gmge.org")
 URL: http://www.gmge.org
 Description: Implementation of Forecastable Component Analysis ('ForeCA'),
     including main algorithms and auxiliary function (summary, plotting, etc.) to
@@ -14,12 +17,17 @@ Description: Implementation of Forecastable Component Analysis ('ForeCA'),
     explicitly into account and searches for the most ''forecastable'' signal.
     The measure of forecastability is based on the Shannon entropy of the spectral
     density of the transformed signal.
-Depends: R (>= 3.0.0), ifultools (>= 2.0.0)
+Depends: R (>= 3.5.0), ifultools (>= 2.0.5)
 License: GPL-2
-Imports: MASS, sapa, graphics, reshape2, utils
-Suggests: astsa, mgcv, nlme (>= 3.1-64), testthat (>= 0.9.0), rSFA,
-RoxygenNote: 5.0.1
+Imports: MASS, sapa (>= 2.0.0), graphics, reshape2 (>= 1.4.4), utils
+Suggests: astsa (>= 1.10), fBasics, knitr, mgcv, nlme (>= 3.1-64),
+        testthat (>= 2.0.0), rSFA,
+RoxygenNote: 7.1.0
+Encoding: UTF-8
+VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2016-03-30 01:42:03 UTC; root
+Packaged: 2020-05-11 12:42:47 UTC; georg
+Author: Georg M. Goerg [aut, cre]
+Maintainer: Georg M. Goerg <im@gmge.org>
 Repository: CRAN
-Date/Publication: 2016-03-30 08:14:22
+Date/Publication: 2020-05-11 17:30:06 UTC

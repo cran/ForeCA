@@ -4,8 +4,13 @@
 \alias{spectral_entropy}
 \title{Estimates spectral entropy of a time series}
 \usage{
-spectral_entropy(series = NULL, spectrum.control = list(),
-  entropy.control = list(), mvspectrum.output = NULL, ...)
+spectral_entropy(
+  series = NULL,
+  spectrum.control = list(),
+  entropy.control = list(),
+  mvspectrum.output = NULL,
+  ...
+)
 }
 \arguments{
 \item{series}{univariate time series of length \eqn{T}.  In the rare case
@@ -94,4 +99,3 @@ Information and Control, vol. 3, no. 4, pp. 360 - 371, 1960.
 \keyword{math}
 \keyword{ts}
 \keyword{univar}
-

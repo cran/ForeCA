@@ -2,12 +2,11 @@
 % Please edit documentation in R/foreca.one_weightvector-utils.R
 \name{foreca.one_weightvector-utils}
 \alias{foreca.one_weightvector-utils}
-\alias{plot.foreca.one_weightvector}
 \alias{summary.foreca.one_weightvector}
+\alias{plot.foreca.one_weightvector}
 \title{Plot, summary, and print methods for class 'foreca.one_weightvector'}
 \usage{
-\method{summary}{foreca.one_weightvector}(object, lag = 10, alpha = 0.05,
-  ...)
+\method{summary}{foreca.one_weightvector}(object, lag = 10, alpha = 0.05, ...)
 
 \method{plot}{foreca.one_weightvector}(x, main = "", cex.lab = 1.1, ...)
 }
@@ -46,4 +45,3 @@ plot of the transformed signal \eqn{y_t^*} along with its spectral density estim
 }
 \keyword{hplot}
 \keyword{manip}
-

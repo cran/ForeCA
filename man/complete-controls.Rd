@@ -7,15 +7,20 @@
 \alias{complete_spectrum_control}
 \title{Completes several control settings}
 \usage{
-complete_algorithm_control(algorithm.control = list(max.iter = 50, num.starts
-  = 10, tol = 0.001, type = "EM"))
+complete_algorithm_control(
+  algorithm.control = list(max.iter = 50, num.starts = 10, tol = 0.001, type = "EM")
+)
 
-complete_entropy_control(entropy.control = list(base = NULL, method = "MLE",
-  prior.probs = NULL, prior.weight = 0.001, threshold = 0), num.outcomes)
+complete_entropy_control(
+  entropy.control = list(base = NULL, method = "MLE", prior.probs = NULL, prior.weight
+    = 0.001, threshold = 0),
+  num.outcomes
+)
 
-complete_spectrum_control(spectrum.control = list(kernel = NULL, method =
-  c("wosa", "direct", "multitaper", "mvspec", "ar", "pgram"), smoothing =
-  FALSE))
+complete_spectrum_control(
+  spectrum.control = list(kernel = NULL, method = c("wosa", "direct", "multitaper",
+    "mvspec", "ar", "pgram"), smoothing = FALSE)
+)
 }
 \arguments{
 \item{algorithm.control}{list; control parameters for any \emph{iterative} ForeCA 
@@ -86,4 +91,3 @@ Completes algorithm, entropy, and spectrum control lists.
 \code{\link{continuous_entropy}}
 }
 \keyword{utils}
-

@@ -23,20 +23,17 @@ context("S3 methods for one weightvector")
 one.weight <- foreca.one_weightvector(U = UU)
 
 test_that("print method works", {
-  tmp <- try(print(one.weight),
-             silent = TRUE)
+  tmp <- try(print(one.weight), silent = TRUE)
   expect_false(inherits(tmp, "try-error"))
 })
 
 test_that("summary method works", {
-  tmp <- try(summary(one.weight),
-             silent = TRUE)
+  tmp <- try(summary(one.weight), silent = TRUE)
   expect_false(inherits(tmp, "try-error"))
 })
 
 test_that("summary method works", {
-  tmp <- try(plot(one.weight),
-             silent = TRUE)
+  tmp <- try(plot(one.weight), silent = TRUE)
   expect_false(inherits(tmp, "try-error"))
 })
 
@@ -46,21 +43,16 @@ context("S3 methods for foreca")
 mod.foreca <- foreca(series = kSeries, n.comp = 4)
 
 test_that("print method works", {
-  tmp <- try(print(mod.foreca),
-             silent = TRUE)
+  tmp <- try(print(mod.foreca), silent = TRUE)
   expect_false(inherits(tmp, "try-error"))
 })
 
 test_that("summary method works", {
-  tmp <- try(summary(mod.foreca),
-             silent = TRUE)
+  tmp <- try(summary(mod.foreca), silent = TRUE)
   expect_false(inherits(tmp, "try-error"))
 })
 
 test_that("summary method works", {
-  tmp <- try(plot(mod.foreca),
-             silent = TRUE)
+  tmp <- try(plot(mod.foreca), silent = TRUE)
   expect_false(inherits(tmp, "try-error"))
 })
-
-

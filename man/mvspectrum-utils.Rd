@@ -34,4 +34,3 @@ plot(SS, log = FALSE)
 }
 \keyword{hplot}
 \keyword{manip}
-

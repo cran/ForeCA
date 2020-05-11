@@ -2,6 +2,8 @@
 kNumVariables <- 5
 kNumObs <- 1000
 
+set.seed(kNumVariables)
+
 kTimeSeries <- matrix(rnorm(kNumVariables * kNumObs), ncol = kNumVariables)
 # this makes the first variable the most forecastable one and also the slowes
 kTimeSeries[, 1] <- arima.sim(kNumObs, model = list(ar = 0.9))
@@ -11,7 +13,6 @@ kTimeSeries[, 2] <- arima.sim(kNumObs, model = list(ar = -0.5))
 context("spectral_entropy")
 
 test_that("spectral_entropy is equal to 1 for perfect uniform spectrum", {
-  
   unif.spec.ent <- spectral_entropy(mvspectrum.output = rep(0.1, 10))
   expect_equal(1, c(unif.spec.ent))
 })
@@ -21,17 +22,15 @@ for (mm in kMvspectrumMethods) {
   sc.tmp <- list(method = mm)
   
   test_that("spectral_entropy is between 0 and 1", {
-    SE <- apply(kTimeSeries, 2, spectral_entropy, 
-                spectrum.control = sc.tmp)
-    
-    expect_true(all(SE > 0 && SE < 1),
-                info = test.msg)
+    SE <- apply(kTimeSeries, 2, spectral_entropy, spectrum.control = sc.tmp)
+    for (ii in 1:ncol(kTimeSeries)) {
+      expect_gt(SE[ii], 0, label = test.msg)
+      expect_lt(SE[ii], 1, label = test.msg)
+    }
     # AR(1) with 0.9 has lowest entropy forecastability
     expect_equal(which.min(SE), 1,
                  info = test.msg)
   })
-  
-
   
   test_that("Independent of location/scale: spectral_entropy", {
     se.orig <- spectral_entropy(kTimeSeries[, 1], spectrum.control = sc.tmp)
@@ -47,23 +46,15 @@ for (mm in kMvspectrumMethods) {
   
   test_that("White noise is has high spectral entropy", {
     se.wn <- spectral_entropy(rnorm(1e4), spectrum.control = sc.tmp)
-    expect_true(se.wn > 0.9, info = test.msg)
-  })
-
-  test_that("Prior uniform increases spectral entropy", {
-    se.wn <- spectral_entropy(rnorm(1e4), spectrum.control = sc.tmp)
-    expect_true(se.wn > 0.9,
-                info = test.msg)
+    expect_gt(se.wn, 0.9, label = test.msg)
   })
 
   xx.tmp <- kTimeSeries[, 1]
   eps <- rnorm(length(xx.tmp))
   test_that("signal + noise has larger entropy than signal", {
-    expect_true(spectral_entropy(xx.tmp, 
-                                 spectrum.control = sc.tmp) <
-                spectral_entropy(xx.tmp + eps, 
-                                 spectrum.control = sc.tmp),
-                info = test.msg)
+    expect_lt(spectral_entropy(xx.tmp, spectrum.control = sc.tmp),
+              spectral_entropy(xx.tmp + eps, spectrum.control = sc.tmp),
+              label = test.msg)
   })
   
   test_that("Adding prior weight increses spectral entropy", {
@@ -72,8 +63,7 @@ for (mm in kMvspectrumMethods) {
     se.w.prior <- spectral_entropy(xx.tmp, 
                                    spectrum.control = sc.tmp,
                                    entropy.control = list(prior.weight = 0.1))
-    expect_true(se.w.prior > se.wo.prior,
-                info = test.msg)
+    expect_gt(se.w.prior, se.wo.prior, label = test.msg)
   })
   
   xx.spec <- mvspectrum(xx.tmp, method = sc.tmp$method)

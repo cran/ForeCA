@@ -20,7 +20,7 @@ test_that("quadratic form actually computes the quadratic form", {
   # first argument must be a matrix
   expect_error(quadratic_form(kVec, kVec))
   # for positive def matrix the quadratic form is positive
-  expect_true(quadratic_form(kPosDefMat, kVec) > 0)
+  expect_gt(quadratic_form(kPosDefMat, kVec), 0)
   # for eigenvalue it must hold that x' A x = lambda x'x = lambda for
   # unit norm x
   expect_equal(quadratic_form(kPosDefMat, eigen.results$vector[, 1]), 
@@ -84,5 +84,4 @@ test_that("fill_hermitian actually produces hermitian matrix", {
   # it is actually Hermitian: A = Conj(A)'
   expect_equal(filled.real, t(Conj(filled.real)))
   expect_equal(filled.complex, t(Conj(filled.complex)))
-  
 })

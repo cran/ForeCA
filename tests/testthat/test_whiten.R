@@ -133,5 +133,3 @@ test_that("sqrt_matrix gives correct inverse for whitening", {
   expect_equal(kPosDef %*% sqrt.result$sqrt.inverse %*%  sqrt.result$sqrt.inverse,        
                diag(1, ncol(kPosDef)))
 })
-
-

@@ -52,4 +52,3 @@ parameter is chosen automatically using generalized cross-validation
 \description{
 Common arguments used in several functions in this package.
 }
-

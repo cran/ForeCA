@@ -54,4 +54,3 @@ continuous_entropy(function(x) x, 0, sqrt(2))
 }
 \keyword{math}
 \keyword{univar}
-
