@@ -43,7 +43,7 @@ complete_algorithm_control <- function(algorithm.control =
     matched <- match(names(algorithm.control), valid.entries)
     if (any(is.na(matched))) {
       print(names(algorithm.control[is.na(matched)]))
-      stop("'algorithm.control' has unvalid entries (see above). Please remove them from the list.")
+      stop("'algorithm.control' has unvalid entries (see above). Remove them to proceed.")
     }
   }
             
@@ -108,7 +108,7 @@ complete_entropy_control <- function(entropy.control =
     matched <- match(names(entropy.control), valid.entries)
     if (any(is.na(matched))) {
       print(names(entropy.control[is.na(matched)]))
-      stop("'entropy.control' has unvalid entries (see above). Please remove them from the list.")
+      stop("'entropy.control' has unvalid entries (see above). Remove them to proceed.")
     }
   }
   
@@ -159,7 +159,7 @@ complete_entropy_control <- function(entropy.control =
 #' \item{kernel}{R function; function to weigh each Fourier frequency \eqn{\lambda}; 
 #' default: \code{NULL} (no re-weighting).}
 #' \item{method}{string; method to estimate the spectrum; default: 
-#' \code{'wosa'} if \pkg{sapa} is installed, \code{'mvspec'} 
+#' \code{'mvspec'} if \pkg{sapa} is installed, \code{'mvspec'} 
 #' if only \pkg{astsa} is installed, and \code{'pgram'} if
 #' neither is installed.}
 #' \item{smoothing}{logical; default: \code{FALSE}.}
@@ -168,18 +168,12 @@ complete_entropy_control <- function(entropy.control =
 #' 
 #' \item{"ar"}{ autoregressive spectrum fit via \code{\link[stats]{spec.ar}}; 
 #' only for univariate time series.}
-#' \item{"direct"}{ raw periodogram using \code{\link[sapa]{SDF}}.}
-#  \item{"lag window"}{ average over a neighborhood of lags in the periodogram 
-#  estimator using \code{\link[sapa]{SDF}}.}
-#' \item{"multitaper"}{ tapering the periodogram using \code{\link[sapa]{SDF}}.}
 #' \item{"mvspec"}{ smoothed estimate using \code{\link[astsa]{mvspec}}; many tuning parameters
 #' are available -- they can be passed as additional arguments (\code{...}) 
 #' to \code{mvspectrum}.}
-#' \item{"pgram"}{ uses \code{\link{mvpgram}}; is the same as the 
-#' \code{'direct'} method, but does not rely on the \code{\link[sapa]{SDF}} 
-#' package.}
-#' \item{"wosa"}{ Welch overlapping segment averaging (WOSA) using \code{\link[sapa]{SDF}}.}
-#' 
+#' \item{"pgram"}{ raw periodogram using \code{spectrum}}
+#' \item{"pspectrum"}{ advanced non-parametric estimation of a tapered power 
+#' spectrum using \code{\link[psd]{pspectrum}}.}
 #' Setting \code{smoothing  = TRUE} will smooth the estimated spectrum
 #' (again); this option is only available for univariate time series/spectra.
 #' 
@@ -187,8 +181,7 @@ complete_entropy_control <- function(entropy.control =
 
 complete_spectrum_control <- function(spectrum.control = 
                                         list(kernel = NULL, 
-                                             method = c("wosa", "direct", "multitaper", 
-                                                        "mvspec", "ar", "pgram"),
+                                             method = c("mvspec", "pspectrum", "ar", "pgram"),
                                              smoothing = FALSE)) {
   stopifnot(inherits(spectrum.control, "list"))
   
@@ -197,7 +190,7 @@ complete_spectrum_control <- function(spectrum.control =
     matched <- match(names(spectrum.control), valid.entries)
     if (any(is.na(matched))) {
       print(names(spectrum.control[is.na(matched)]))
-      stop("'spectrum.control' has unvalid entries (see above). Please remove them from the list.")
+      stop("'spectrum.control' has unvalid entries (see above). Remove them to proceed.")
     }
   }
   
@@ -210,28 +203,17 @@ complete_spectrum_control <- function(spectrum.control =
   }
   
   if (is.null(spectrum.control$method)) {
-    if (requireNamespace("sapa", quietly = TRUE)) {
-      spectrum.control$method <- "wosa"
-    } else if (requireNamespace("astsa", quietly = TRUE)) {
-      spectrum.control$method <- "mvspec"
-    } else {
-      spectrum.control$method <- "pgram"
-    }
+    spectrum.control$method <- "mvspec"
   } else if (length(spectrum.control$method) > 1) {
-    # take the first method if more than one is specified
+    # Take the first method if more than one is specified.
     spectrum.control$method <- spectrum.control$method[1]
   }
   stopifnot(is.character(spectrum.control$method),
             length(spectrum.control$method) == 1)
-  if (spectrum.control$method %in% c("wosa", "multitaper", "direct")) {
-    if (!requireNamespace("sapa", quietly = TRUE)) {
-      stop("For method '", spectrum.control$method, "' you need the 'sapa' package.\n",
-           "\t Please install it or user another method.")
-    }    
-  } else if (spectrum.control$method == "mvspec") {
+  if (spectrum.control$method == "mvspec") {
     if (!requireNamespace("astsa", quietly = TRUE)) {
       stop("For method '", spectrum.control$method, "' you need the 'astsa' package.\n",
-           "Please install it or user another method.")
+           "Install it or user another method.")
     }
   }
   
@@ -239,13 +221,5 @@ complete_spectrum_control <- function(spectrum.control =
     spectrum.control$smoothing <- FALSE
   }
   stopifnot(is.logical(spectrum.control$smoothing))
-  
-  #if (is.null(spectrum.control$taper)) {
-  #  spectrum.control$taper <- 0.05
-  #}
-  #stopifnot(is.numeric(spectrum.control$taper),
-  #          length(spectrum.control$taper) == 1,
-  #          spectrum.control$taper >= 0)
-
   return(spectrum.control)
 }

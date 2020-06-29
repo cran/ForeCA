@@ -44,7 +44,7 @@
 #' spectral_entropy(eps)
 #' 
 #' phi.v <- seq(-0.95, 0.95, by = 0.1)
-#' kMethods <- c("wosa", "multitaper", "direct", "pgram")
+#' kMethods <- c("mvspec", "pgram")
 #' SE <- matrix(NA, ncol = length(kMethods), nrow = length(phi.v))
 #' for (ii in seq_along(phi.v)) {
 #'   xx.tmp <- arima.sim(n = 200, list(ar = phi.v[ii]))
@@ -65,7 +65,7 @@
 #' for (ii in seq_along(phi.v)){
 #'   yy.temp <- arima.sim(n = 1000, list(ma = phi.v[ii]))
 #'   SE.arma[ii, 2] <- 
-#'     spectral_entropy(yy.temp, spectrum.control = list(method = "multitaper"))
+#'     spectral_entropy(yy.temp, spectrum.control = list(method = "mvspec"))
 #' }
 #' 
 #' matplot(phi.v, SE.arma, type = "l", col = 1:2, xlab = "parameter (phi or theta)",
@@ -118,6 +118,9 @@ spectral_entropy <- function(series = NULL, spectrum.control = list(),
     spec.dens <- c(rev(c(mvspectrum.output)), c(mvspectrum.output))
     spec.dens[spec.dens < 0] <- 0
     spec.dens <- spec.dens / sum(spec.dens)
+    entropy.control <- complete_entropy_control(entropy.control,
+                                                num.outcomes = length(spec.dens))
+    entropy.control$prior.probs <- NULL
     spec.ent <- do.call("discrete_entropy", 
                         c(list(probs = spec.dens), entropy.control))
   }

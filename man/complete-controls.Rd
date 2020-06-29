@@ -18,8 +18,8 @@ complete_entropy_control(
 )
 
 complete_spectrum_control(
-  spectrum.control = list(kernel = NULL, method = c("wosa", "direct", "multitaper",
-    "mvspec", "ar", "pgram"), smoothing = FALSE)
+  spectrum.control = list(kernel = NULL, method = c("mvspec", "pspectrum", "ar",
+    "pgram"), smoothing = FALSE)
 )
 }
 \arguments{
@@ -61,7 +61,7 @@ zero;  default: \code{0}.}
 \item{kernel}{R function; function to weigh each Fourier frequency \eqn{\lambda}; 
 default: \code{NULL} (no re-weighting).}
 \item{method}{string; method to estimate the spectrum; default: 
-\code{'wosa'} if \pkg{sapa} is installed, \code{'mvspec'} 
+\code{'mvspec'} if \pkg{sapa} is installed, \code{'mvspec'} 
 if only \pkg{astsa} is installed, and \code{'pgram'} if
 neither is installed.}
 \item{smoothing}{logical; default: \code{FALSE}.}
@@ -70,16 +70,12 @@ Available methods for spectrum estimation are (alphabetical order)
 
 \item{"ar"}{ autoregressive spectrum fit via \code{\link[stats]{spec.ar}}; 
 only for univariate time series.}
-\item{"direct"}{ raw periodogram using \code{\link[sapa]{SDF}}.}
-\item{"multitaper"}{ tapering the periodogram using \code{\link[sapa]{SDF}}.}
 \item{"mvspec"}{ smoothed estimate using \code{\link[astsa]{mvspec}}; many tuning parameters
 are available -- they can be passed as additional arguments (\code{...}) 
 to \code{mvspectrum}.}
-\item{"pgram"}{ uses \code{\link{mvpgram}}; is the same as the 
-\code{'direct'} method, but does not rely on the \code{\link[sapa]{SDF}} 
-package.}
-\item{"wosa"}{ Welch overlapping segment averaging (WOSA) using \code{\link[sapa]{SDF}}.}
-
+\item{"pgram"}{ raw periodogram using \code{spectrum}}
+\item{"pspectrum"}{ advanced non-parametric estimation of a tapered power 
+spectrum using \code{\link[psd]{pspectrum}}.}
 Setting \code{smoothing  = TRUE} will smooth the estimated spectrum
 (again); this option is only available for univariate time series/spectra.
 }

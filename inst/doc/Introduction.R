@@ -10,7 +10,7 @@ citation("ForeCA")
 
 ## ----set-controls-------------------------------------------------------------
 # spectrum control
-sc <- list(method = "wosa")
+sc <- list(method = "mvspec")
 # entropy control
 ec <- list(prior.weight = 1e-2)
 
@@ -19,7 +19,7 @@ data("EuStockMarkets")
 
 ## ----eu-stock-markets---------------------------------------------------------
 # log-returns in %
-ret <- ts(diff(log(EuStockMarkets)) * 100)
+ret <- diff(log(EuStockMarkets)) * 100
 
 ## ----plot-returns, cache = FALSE, echo = FALSE--------------------------------
 plot(ret)
@@ -32,7 +32,7 @@ kable(format(solve(cor.ret), digits = 2),
       caption = "Conditional covariance given other variables")
 
 ## ----acf-spectra--------------------------------------------------------------
-ret.spec <- mvspectrum(ret, spectrum.control = sc)
+ret.spec <- mvspectrum(ret, method = sc$method)
 plot(ret.spec)
 layout(matrix(seq_len(ncol(ret)), ncol = 2))
 for (nn in colnames(ret)) {
@@ -62,7 +62,7 @@ mod.foreca.ret$loadings
 
 ## ----foreca-returns-summary---------------------------------------------------
 plot(mod.foreca.ret)
-plot(ts(mod.foreca.ret$scores))
+plot(mod.foreca.ret$scores)
 
 ## ----foreca-unit-variance-check-----------------------------------------------
 round(colMeans(mod.foreca.ret$scores), 3)

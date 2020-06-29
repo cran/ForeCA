@@ -61,8 +61,8 @@
 #'
 #'
 #' In general, these differences are small and have no relevant implications
-#' for estimating ForeCs.  However, especially for rare occasions, the obtained ForeCs can have
-#' smaller \code{Omega} than the maximum \code{Omega} of the original series.
+#' for estimating ForeCs.  However, in rare occasions the obtained ForeCs can have
+#' smaller \code{Omega} than the maximum \code{Omega} across all original series.
 #' In such a case users should not re-estimate \eqn{\Omega} from the resulting
 #' ForeCs \eqn{\mathbf{F}_t}, but access them via \code{$Omega} provided
 #' by \code{'foreca'} output (the univariate estimates are stored in \code{$Omega.univ}).
@@ -73,10 +73,10 @@
 #' Available at \url{http://jmlr.org/proceedings/papers/v28/goerg13.html}.
 #' @export
 #' @examples
-#' XX <- diff(log(EuStockMarkets[c(100:200),])) * 100
+#' XX <- diff(log(EuStockMarkets)) * 100
 #' plot(ts(XX))
 #' \dontrun{
-#' ff <- foreca(XX[,1:4], n.comp = 2, plot = TRUE)
+#' ff <- foreca(XX[,1:4], n.comp = 4, plot = TRUE, spectrum.control=list(method="pspectrum"))
 #' ff
 #' summary(ff)
 #' plot(ff)
@@ -96,7 +96,7 @@ foreca <- function(series, n.comp = 2, algorithm.control = list(type = "EM"),
   # number of components must be smaller or equal to number of time series
   if (n.comp > num.series) {
     stop("You can not extract ", n.comp, " components from only ", num.series, " time series.\n",
-         "Please reduce n.comp to at most ", num.series, ".")
+         "Reduce n.comp <=", num.series, ".")
   }
 
   PW.all <- whiten(series)
@@ -155,6 +155,7 @@ foreca <- function(series, n.comp = 2, algorithm.control = list(type = "EM"),
 #' with larges \code{\link{Omega}}.
 #' @examples
 #'
+#' \dontrun{
 #' PW <- whiten(XX)
 #' one.weight.em <- foreca.one_weightvector(U = PW$U,
 #'                                         dewhitening = PW$dewhitening,
@@ -162,9 +163,9 @@ foreca <- function(series, n.comp = 2, algorithm.control = list(type = "EM"),
 #'                                           list(num.starts = 2,
 #'                                                type = "EM"),
 #'                                         spectrum.control =
-#'                                           list(method = 'wosa'))
+#'                                           list(method = "mvspec"))
 #' plot(one.weight.em)
-#'
+#' }
 #' @export
 
 foreca.one_weightvector <- function(U, f.U = NULL,
@@ -197,11 +198,6 @@ foreca.one_weightvector <- function(U, f.U = NULL,
   spectrum.control <- complete_spectrum_control(spectrum.control)
   algorithm.control <- complete_algorithm_control(algorithm.control)
 
-  num.freqs <- floor(num.obs / 2)
-  entropy.control$base <- NULL
-  entropy.control <- complete_entropy_control(entropy.control,
-                                              num.outcomes = 2 * num.freqs)
-
   if (is.null(f.U)) {
     f.U <- mvspectrum(UU, method = spectrum.control$method, normalize = TRUE,
                       ...)
@@ -216,6 +212,11 @@ foreca.one_weightvector <- function(U, f.U = NULL,
 
   Omega.best <- 0
   converged <- FALSE
+
+  num.freqs <- dim(f.U)[1]
+  entropy.control$base <- NULL
+  entropy.control <- complete_entropy_control(entropy.control,
+                                              num.outcomes = 2 * num.freqs)
 
   # Prepare arguments for any one vector algorithm
   args.for.one_weightvector.algo <-
@@ -316,7 +317,7 @@ foreca.one_weightvector <- function(U, f.U = NULL,
   }  # end of ii
 
   if (!converged) {
-    warning("Convergence has not been reached. Please try again.")
+    warning("Convergence has not been reached. Try again.")
   }
 
   wv.trace.best <- one.results.best$weightvector.trace
@@ -491,7 +492,7 @@ foreca.multiple_weightvectors <- function(U,
     warning("'foreca.multiple_weightvectors()' did not extract ForeCs in order of ",
             "decreasing forecastability; ",
             "loadings and sources were re-ordered accordingly. ",
-            "Please check results.")
+            "Check results.")
     cat("Original order:\n")
     cat("\t", paste(omega.order, collapse = ", "), "\n")
 

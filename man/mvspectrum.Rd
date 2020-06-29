@@ -11,7 +11,7 @@
 \usage{
 mvspectrum(
   series,
-  method = c("pgram", "multitaper", "direct", "wosa", "mvspec", "ar"),
+  method = c("mvspec", "pgram", "pspectrum", "ar"),
   normalize = FALSE,
   smoothing = FALSE,
   ...
@@ -35,8 +35,8 @@ spectrum_of_linear_combination(mvspectrum.output, beta)
 \eqn{K}-dimensional time series \eqn{\mathbf{X}_t}. Can be a \code{matrix}, \code{data.frame}, 
 or a multivariate \code{ts} object.}
 
-\item{method}{string; method for spectrum estimation; see \code{method} argument in
-\code{\link[sapa]{SDF}} (in the \pkg{sapa} package); use 
+\item{method}{string; method for spectrum estimation: use \code{"pspectrum"} for
+\code{\link[psd]{pspectrum}}; use 
 \code{"mvspec"} to use \code{\link[astsa]{mvspec}} (\pkg{astsa} package); or
 use \code{"pgram"} to use \code{\link[stats]{spec.pgram}}.}
 
@@ -50,7 +50,7 @@ for univariate spectrum. The smoothing
 parameter is chosen automatically using generalized cross-validation 
 (see \code{\link[mgcv]{gam}} for details). Default: \code{FALSE}.}
 
-\item{\dots}{additional arguments passed to \code{\link[sapa]{SDF}} or 
+\item{\dots}{additional arguments passed to \code{\link[psd]{pspectrum}} or 
 \code{\link[astsa]{mvspec}} (e.g., \code{taper})}
 
 \item{mvspectrum.output}{an object of class \code{"mvspectrum"} representing
@@ -77,7 +77,7 @@ combination.}
  \item num.freqs is the number of frequencies
  \item K is the number of series (columns in \code{series}).
 }
-Note that it also has an attribute \code{"normalized"} which is
+It also has an \code{"normalized"} attribute, which is
 \code{FALSE} if \code{normalize = FALSE}; otherwise \code{TRUE}.
 See \code{normalize_mvspectrum} for details.
 
@@ -125,7 +125,7 @@ are purely imaginary (real part equals 0) and thus add up to 0.
 (see \code{\link{normalize_mvspectrum}} for the requirements).
 
 \code{mvpgram} computes the multivariate periodogram estimate using
-bare-bone multivariate fft (\code{\link[stats]{mvfft}}). Please use
+bare-bone multivariate fft (\code{\link[stats:fft]{mvfft}}). Use
 \code{mvspectrum(..., method = 'pgram')} instead of \code{mvpgram} directly.
 
 This function is merely included to have one method that does not
@@ -176,33 +176,33 @@ dim(ss3d)
 
 ss3d[2,,] # at omega_1; in general complex-valued, but Hermitian
 identical(ss3d[2,,], Conj(t(ss3d[2,,]))) # is Hermitian
-
-ss <- mvspectrum(XX[, 1], smoothing = TRUE)
-
 \dontrun{
+  ss <- mvspectrum(XX[, 1], method="pspectrum", smoothing = TRUE)
   mvspectrum(XX, normalize = TRUE)
 }
 ss <- mvspectrum(whiten(XX)$U, normalize = TRUE)
 
 xx <- scale(rnorm(100), center = TRUE, scale = FALSE)
 var(xx)
-sum(mvspectrum(xx, normalize = FALSE, method = "direct")) * 2
-sum(mvspectrum(xx, normalize = FALSE, method = "wosa")) * 2
-
-
+sum(mvspectrum(xx, normalize = FALSE, method = "pgram")) * 2
+sum(mvspectrum(xx, normalize = FALSE, method = "mvspec")) * 2
+\dontrun{
+  sum(mvspectrum(xx, normalize = FALSE, method = "pspectrum")) * 2
+}
+\dontrun{
 xx <- scale(rnorm(100), center = TRUE, scale = FALSE)
 ss <- mvspectrum(xx)
 ss.n <- normalize_mvspectrum(ss)
 sum(ss.n)
 # multivariate
 UU <- whiten(matrix(rnorm(40), ncol = 2))$U
-S.U <- mvspectrum(UU, method = "wosa")
+S.U <- mvspectrum(UU, method = "mvspec")
 mvspectrum2wcov(normalize_mvspectrum(S.U))
-
+}
 
 XX <- matrix(rnorm(1000), ncol = 2)
-SS <- mvspectrum(XX, "direct")
-ss1 <- mvspectrum(XX[, 1], "direct")
+SS <- mvspectrum(XX, "mvspec")
+ss1 <- mvspectrum(XX[, 1], "mvspec")
 
 SS.1 <- get_spectrum_from_mvspectrum(SS, 1)
 plot.default(ss1, SS.1)
@@ -213,16 +213,16 @@ XX <- matrix(arima.sim(n = 1000, list(ar = 0.9)), ncol = 4)
 beta.tmp <- rbind(1, -1, 2, 0)
 yy <- XX \%*\% beta.tmp
 
-SS <- mvspectrum(XX, "wosa")
+SS <- mvspectrum(XX, "mvspec")
 ss.yy.comb <- spectrum_of_linear_combination(SS, beta.tmp)
-ss.yy <- mvspectrum(yy, "wosa")
+ss.yy <- mvspectrum(yy, "mvspec")
 
 plot(ss.yy, log = TRUE) # using plot.mvspectrum()
 lines(ss.yy.comb, col = "red", lty = 1, lwd = 2) 
 
 }
 \references{
-See References in \code{\link[stats]{spectrum}}, \code{\link[sapa]{SDF}}, 
+See References in \code{\link[stats]{spectrum}}, \code{\link[psd]{pspectrum}}, 
 \code{\link[astsa]{mvspec}}.
 }
 \keyword{manip}

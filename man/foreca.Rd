@@ -135,24 +135,25 @@ can be different.
 
 
 In general, these differences are small and have no relevant implications
-for estimating ForeCs.  However, especially for rare occasions, the obtained ForeCs can have
-smaller \code{Omega} than the maximum \code{Omega} of the original series.
+for estimating ForeCs.  However, in rare occasions the obtained ForeCs can have
+smaller \code{Omega} than the maximum \code{Omega} across all original series.
 In such a case users should not re-estimate \eqn{\Omega} from the resulting
 ForeCs \eqn{\mathbf{F}_t}, but access them via \code{$Omega} provided
 by \code{'foreca'} output (the univariate estimates are stored in \code{$Omega.univ}).
 }
 
 \examples{
-XX <- diff(log(EuStockMarkets[c(100:200),])) * 100
+XX <- diff(log(EuStockMarkets)) * 100
 plot(ts(XX))
 \dontrun{
-ff <- foreca(XX[,1:4], n.comp = 2, plot = TRUE)
+ff <- foreca(XX[,1:4], n.comp = 4, plot = TRUE, spectrum.control=list(method="pspectrum"))
 ff
 summary(ff)
 plot(ff)
 }
 
 
+\dontrun{
 PW <- whiten(XX)
 one.weight.em <- foreca.one_weightvector(U = PW$U,
                                         dewhitening = PW$dewhitening,
@@ -160,9 +161,9 @@ one.weight.em <- foreca.one_weightvector(U = PW$U,
                                           list(num.starts = 2,
                                                type = "EM"),
                                         spectrum.control =
-                                          list(method = 'wosa'))
+                                          list(method = "mvspec"))
 plot(one.weight.em)
-
+}
 \dontrun{
 
 PW <- whiten(XX)

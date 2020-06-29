@@ -13,7 +13,7 @@ kTimeSeries[, 1] <- arima.sim(kNumObs, model = list(ar = 0.9))
 kTimeSeries[, 2] <- arima.sim(kNumObs, model = list(ar = -0.5))
 
 kWhitened <- whiten(kTimeSeries)$U
-f.U.tmp <- mvspectrum(kWhitened, "wosa", normalize = TRUE)
+f.U.tmp <- mvspectrum(kWhitened, "mvspec", normalize = TRUE)
 
 for (mm in kAvailableMethods) {
   test.msg <- paste0("Testing method ", mm, "\n")
@@ -29,11 +29,11 @@ for (mm in kAvailableMethods) {
 
 test_that("Max is actually max Omega", {
   ww.tmp <- initialize_weightvector(U = kWhitened, f.U = f.U.tmp, method = "max")
-  expect_equal(which.max(Omega(kWhitened, spectrum.control = list(method = "wosa"))), 
+  expect_equal(which.max(Omega(kWhitened, spectrum.control = list(method = "mvspec"))), 
                which.max(ww.tmp),
                info = test.msg)
   # the first one is the AR(1)
-  expect_equal(which.max(Omega(kWhitened, spectrum.control = list(method = "wosa"))), 1,
+  expect_equal(which.max(Omega(kWhitened, spectrum.control = list(method = "mvspec"))), 1,
                info = test.msg)
 })
 

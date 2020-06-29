@@ -13,8 +13,8 @@
 #' @examples
 #' 
 #' XX <- matrix(rnorm(1000), ncol = 2)
-#' SS <- mvspectrum(XX, "direct")
-#' ss1 <- mvspectrum(XX[, 1], "direct")
+#' SS <- mvspectrum(XX, "mvspec")
+#' ss1 <- mvspectrum(XX[, 1], "mvspec")
 #' 
 #' SS.1 <- get_spectrum_from_mvspectrum(SS, 1)
 #' plot.default(ss1, SS.1)
@@ -37,7 +37,7 @@ get_spectrum_from_mvspectrum <- function(mvspectrum.output,
     if (!isTRUE(tmp)) {
       cat(tmp)
       warning("The multivariate spectrum has imaginary elements in the diagonal.", 
-              " Please check your spectrum estimates again (and set 'inverse = FALSE'",
+              " Check spectrum estimates again (and set 'inverse = FALSE'",
               " in 'normalize_mvspectrum' if you have used this function).")
     }
     return(Re(all.spectra[, which]))
@@ -72,9 +72,9 @@ get_spectrum_from_mvspectrum <- function(mvspectrum.output,
 #' beta.tmp <- rbind(1, -1, 2, 0)
 #' yy <- XX %*% beta.tmp
 #' 
-#' SS <- mvspectrum(XX, "wosa")
+#' SS <- mvspectrum(XX, "mvspec")
 #' ss.yy.comb <- spectrum_of_linear_combination(SS, beta.tmp)
-#' ss.yy <- mvspectrum(yy, "wosa")
+#' ss.yy <- mvspectrum(yy, "mvspec")
 #' 
 #' plot(ss.yy, log = TRUE) # using plot.mvspectrum()
 #' lines(ss.yy.comb, col = "red", lty = 1, lwd = 2) 
@@ -93,7 +93,7 @@ spectrum_of_linear_combination <- function(mvspectrum.output, beta) {
     if (!isTRUE(tmp)) {
       cat(tmp)
       warning("The linear combination of spectra has imaginary values.",
-              " Please check your multivariate spectrum estimates again ")
+              " Check multivariate spectrum estimates again.")
     }
     spec.dens.est <- Re(spec.dens.est)
     
